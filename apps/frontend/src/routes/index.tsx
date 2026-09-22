@@ -43,11 +43,10 @@ function LandingPage() {
       <main className="min-h-svh">
         <section className="mx-auto w-full max-w-2xl px-4 pt-16 pb-12 text-center">
           <h1 className="text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-            Say it in a few words.
+            Jan Kudrlička
           </h1>
           <p className="mx-auto mt-4 max-w-md text-lg text-pretty text-muted-foreground">
-            Quacker is a tiny social network for short messages. Post a quack, read what everyone
-            else is up to.
+            Vysoká škola ekonomická v Praze<br />
           </p>
 
           {/* The call to action depends on who is asking: no point offering an
