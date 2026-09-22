@@ -46,7 +46,8 @@ function LandingPage() {
             Jan Kudrlička
           </h1>
           <p className="mx-auto mt-4 max-w-md text-lg text-pretty text-muted-foreground">
-            Vysoká škola ekonomická v Praze<br />
+            Vysoká škola ekonomická v Praze
+            <br />
           </p>
 
           {/* The call to action depends on who is asking: no point offering an
