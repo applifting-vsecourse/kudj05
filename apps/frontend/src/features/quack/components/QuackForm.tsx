@@ -1,3 +1,4 @@
+import { useId } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -13,28 +14,20 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-import { MOODS } from "@/features/quack/api/quackSchemas"
+import { moodSchema } from "@/features/quack/api/quackSchemas"
+import { MoodPicker } from "@/features/quack/components/MoodPicker"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
 
-// "none" stands in for "no mood" because a Select item cannot have an empty value.
-const NO_MOOD = "none"
-
 const schema = z.object({
-  mood: z.enum([NO_MOOD, ...MOODS]),
+  // Optional: null means the quack is posted without a mood.
+  mood: moodSchema.nullable(),
   text: z
     .string()
     .trim()
@@ -48,9 +41,10 @@ type QuackFormProps = { className?: string }
 
 export function QuackForm({ className }: QuackFormProps) {
   const addQuack = useAddQuack()
+  const moodLabelId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: NO_MOOD },
+    defaultValues: { text: "", mood: null },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
@@ -60,7 +54,7 @@ export function QuackForm({ className }: QuackFormProps) {
     addQuack.mutate(
       {
         text: values.text,
-        mood: values.mood === NO_MOOD ? undefined : values.mood,
+        mood: values.mood ?? undefined,
       },
       { onSuccess: () => form.reset() },
     )
@@ -98,40 +92,28 @@ export function QuackForm({ className }: QuackFormProps) {
           )}
         />
 
-        <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <FormField
             control={form.control}
             name="mood"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Mood</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  disabled={addQuack.isPending}
-                >
-                  <FormControl>
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NO_MOOD}>No mood</SelectItem>
-                    {MOODS.map((mood) => (
-                      <SelectItem
-                        key={mood}
-                        value={mood}
-                      >
-                        {mood.charAt(0).toUpperCase() + mood.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <FormItem className="w-full sm:max-w-sm">
+                <FormLabel id={moodLabelId}>
+                  Mood <span className="font-normal text-muted-foreground">optional</span>
+                </FormLabel>
+                <FormControl>
+                  <MoodPicker
+                    aria-labelledby={moodLabelId}
+                    value={field.value}
+                    onChange={field.onChange}
+                    isDisabled={addQuack.isPending}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3">
             <span
               className={cn(
                 "text-sm",

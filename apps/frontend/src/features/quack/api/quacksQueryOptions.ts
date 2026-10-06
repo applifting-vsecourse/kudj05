@@ -22,4 +22,8 @@ export const quacksQueryOptions = (search = "") =>
           .json(),
       ),
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+    // While a search is being refined, the previous results stay on screen instead of
+    // flashing a spinner on every keystroke. The plain feed never stands in for results.
+    placeholderData: (previousData, previousQuery) =>
+      search && previousQuery?.queryKey[2].search ? previousData : undefined,
   })

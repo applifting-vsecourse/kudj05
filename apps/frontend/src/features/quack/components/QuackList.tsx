@@ -2,6 +2,7 @@ import { Loader2, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { QuackItem } from "@/features/quack/components/QuackItem"
@@ -10,8 +11,9 @@ type QuackListProps = {
   quacks: Quack[]
   isLoading?: boolean
   isFetchingNextPage?: boolean
-  isSearchOpen?: boolean
-  hasSearchQuery?: boolean
+  // The quacks on screen belong to the previous request while the next one loads.
+  isStale?: boolean
+  emptyMessage?: string
   error?: Error
   onReload?: () => void
   onLoadMore?: () => void
@@ -21,14 +23,20 @@ export function QuackList({
   quacks,
   isLoading,
   isFetchingNextPage,
-  isSearchOpen,
-  hasSearchQuery,
+  isStale,
+  emptyMessage = "No quacks yet. Post the first one.",
   error,
   onReload,
   onLoadMore,
 }: QuackListProps) {
   return (
-    <div className="flex flex-col">
+    <div
+      aria-busy={isStale}
+      className={cn(
+        "flex flex-col transition-opacity duration-200 motion-reduce:transition-none",
+        isStale && "opacity-60",
+      )}
+    >
       {isLoading && quacks.length === 0 ? (
         <div className="flex items-center justify-center py-8 text-muted-foreground">
           <Loader2 className="size-5 animate-spin" />
@@ -57,17 +65,12 @@ export function QuackList({
         </Alert>
       ) : null}
 
-      {!isLoading && !error && quacks.length === 0 && isSearchOpen && !hasSearchQuery ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          Začněte psát pro vyhledání příspěvku.
-        </p>
-      ) : null}
-
-      {!isLoading && !error && quacks.length === 0 && (!isSearchOpen || hasSearchQuery) ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          {isSearchOpen
-            ? "Žádné příspěvky neodpovídají hledání."
-            : "Zatím tu nejsou žádné příspěvky."}
+      {!isLoading && !error && quacks.length === 0 ? (
+        <p
+          role="status"
+          className="py-8 text-center text-sm text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0"
+        >
+          {emptyMessage}
         </p>
       ) : null}
 

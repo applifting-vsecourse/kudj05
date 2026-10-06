@@ -19,7 +19,22 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
 describe("QuackList", () => {
   it("shows the mood of a quack that has one", () => {
     render(<QuackList quacks={[quack({ mood: "silly" })]} />)
-    expect(screen.getByText("silly")).toBeInTheDocument()
+    expect(screen.getByText("Silly")).toBeInTheDocument()
+  })
+
+  it("says what would appear when there are no quacks", () => {
+    render(<QuackList quacks={[]} />)
+    expect(screen.getByRole("status")).toHaveTextContent("No quacks yet. Post the first one.")
+  })
+
+  it("lets the caller word the empty state", () => {
+    render(
+      <QuackList
+        quacks={[]}
+        emptyMessage="No quacks match “pond”."
+      />,
+    )
+    expect(screen.getByRole("status")).toHaveTextContent("No quacks match “pond”.")
   })
 
   it("renders quacks with author info", () => {
