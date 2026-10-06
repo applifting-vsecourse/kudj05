@@ -13,16 +13,28 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
+import { MOODS } from "@/features/quack/api/quackSchemas"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
 
+// "none" stands in for "no mood" because a Select item cannot have an empty value.
+const NO_MOOD = "none"
+
 const schema = z.object({
+  mood: z.enum([NO_MOOD, ...MOODS]),
   text: z
     .string()
     .trim()
@@ -38,14 +50,20 @@ export function QuackForm({ className }: QuackFormProps) {
   const addQuack = useAddQuack()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "" },
+    defaultValues: { text: "", mood: NO_MOOD },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
 
   const handleSubmit = (values: FormValues) => {
-    addQuack.mutate({ text: values.text }, { onSuccess: () => form.reset() })
+    addQuack.mutate(
+      {
+        text: values.text,
+        mood: values.mood === NO_MOOD ? undefined : values.mood,
+      },
+      { onSuccess: () => form.reset() },
+    )
   }
 
   return (
@@ -80,23 +98,57 @@ export function QuackForm({ className }: QuackFormProps) {
           )}
         />
 
-        <div className="flex items-center justify-end gap-3">
-          <span
-            className={cn(
-              "text-sm",
-              length > MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
+        <div className="flex items-end justify-between gap-3">
+          <FormField
+            control={form.control}
+            name="mood"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mood</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={addQuack.isPending}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={NO_MOOD}>No mood</SelectItem>
+                    {MOODS.map((mood) => (
+                      <SelectItem
+                        key={mood}
+                        value={mood}
+                      >
+                        {mood.charAt(0).toUpperCase() + mood.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
             )}
-          >
-            {length}/{MAX_LENGTH}
-          </span>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={addQuack.isPending}
-          >
-            {addQuack.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
-            Quack
-          </Button>
+          />
+          <div className="flex items-center gap-3">
+            <span
+              className={cn(
+                "text-sm",
+                length > MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
+              )}
+            >
+              {length}/{MAX_LENGTH}
+            </span>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={addQuack.isPending}
+            >
+              {addQuack.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
+              Quack
+            </Button>
+          </div>
         </div>
       </form>
     </Form>

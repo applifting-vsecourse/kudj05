@@ -9,6 +9,7 @@ import { QuackList } from "@/features/quack/components/QuackList"
 const quack = (overrides: Partial<Quack> = {}): Quack => ({
   id: "q1",
   text: "quack quack",
+  mood: null,
   userId: "u1",
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
@@ -16,6 +17,11 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
 })
 
 describe("QuackList", () => {
+  it("shows the mood of a quack that has one", () => {
+    render(<QuackList quacks={[quack({ mood: "silly" })]} />)
+    expect(screen.getByText("silly")).toBeInTheDocument()
+  })
+
   it("renders quacks with author info", () => {
     render(<QuackList quacks={[quack()]} />)
 
