@@ -23,4 +23,9 @@ export const quackSchema = z.object({
 
 export const quacksSchema = z.array(quackSchema)
 
+export const quackPageSchema = z.object({
+  items: z.array(quackSchema),
+  nextOffset: z.number().nullable(),
+})
+
 export type Quack = z.infer<typeof quackSchema>

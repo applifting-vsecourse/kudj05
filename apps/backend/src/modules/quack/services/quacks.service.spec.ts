@@ -21,11 +21,14 @@ describe('QuacksService', () => {
   it('returns quacks from the repository', async () => {
     const quacks = [aQuack()];
     const repository = mock<QuackRepository>();
-    repository.getQuacks.mockResolvedValue(quacks);
+    repository.getQuacks.mockResolvedValue({ items: quacks, nextOffset: null });
 
     const service = new QuacksService(repository);
 
-    await expect(service.getQuacks()).resolves.toEqual(quacks);
+    await expect(service.getQuacks()).resolves.toEqual({
+      items: quacks,
+      nextOffset: null,
+    });
     expect(repository.getQuacks).toHaveBeenCalledTimes(1);
   });
 

@@ -1,12 +1,25 @@
-import { queryOptions } from "@tanstack/react-query"
+import { infiniteQueryOptions } from "@tanstack/react-query"
 
 import { api } from "@/lib/api-client"
 
 import { quackKeys } from "@/features/quack/api/quackKeys"
-import { quacksSchema } from "@/features/quack/api/quackSchemas"
+import { quackPageSchema } from "@/features/quack/api/quackSchemas"
 
-export const quacksQueryOptions = () =>
-  queryOptions({
-    queryKey: quackKeys.lists(),
-    queryFn: async () => quacksSchema.parse(await api.get("quacks").json()),
+export const quacksQueryOptions = (search = "") =>
+  infiniteQueryOptions({
+    queryKey: quackKeys.lists(search),
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) =>
+      quackPageSchema.parse(
+        await api
+          .get("quacks", {
+            searchParams: {
+              ...(search ? { search } : {}),
+              offset: pageParam,
+              limit: 20,
+            },
+          })
+          .json(),
+      ),
+    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
   })

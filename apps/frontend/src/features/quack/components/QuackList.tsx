@@ -9,11 +9,24 @@ import { QuackItem } from "@/features/quack/components/QuackItem"
 type QuackListProps = {
   quacks: Quack[]
   isLoading?: boolean
+  isFetchingNextPage?: boolean
+  isSearchOpen?: boolean
+  hasSearchQuery?: boolean
   error?: Error
   onReload?: () => void
+  onLoadMore?: () => void
 }
 
-export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps) {
+export function QuackList({
+  quacks,
+  isLoading,
+  isFetchingNextPage,
+  isSearchOpen,
+  hasSearchQuery,
+  error,
+  onReload,
+  onLoadMore,
+}: QuackListProps) {
   return (
     <div className="flex flex-col">
       {isLoading && quacks.length === 0 ? (
@@ -44,9 +57,17 @@ export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps
         </Alert>
       ) : null}
 
-      {!isLoading && !error && quacks.length === 0 ? (
+      {!isLoading && !error && quacks.length === 0 && isSearchOpen && !hasSearchQuery ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          No quacks yet. Post the first one.
+          Začněte psát pro vyhledání příspěvku.
+        </p>
+      ) : null}
+
+      {!isLoading && !error && quacks.length === 0 && (!isSearchOpen || hasSearchQuery) ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {isSearchOpen
+            ? "Žádné příspěvky neodpovídají hledání."
+            : "Zatím tu nejsou žádné příspěvky."}
         </p>
       ) : null}
 
@@ -56,6 +77,26 @@ export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps
           quack={quack}
         />
       ))}
+
+      {onLoadMore ? (
+        <div className="flex min-h-10 items-center justify-center py-4">
+          <div
+            ref={(element) => {
+              if (!element || isFetchingNextPage) return
+              const observer = new IntersectionObserver(([entry]) => {
+                if (entry?.isIntersecting) onLoadMore()
+              })
+              observer.observe(element)
+              return () => observer.disconnect()
+            }}
+            className="flex items-center justify-center"
+          >
+            {isFetchingNextPage ? (
+              <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

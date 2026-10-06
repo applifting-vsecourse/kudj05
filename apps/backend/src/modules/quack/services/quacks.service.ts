@@ -1,5 +1,8 @@
 import { Mood, Quack } from '@/modules/quack/domain/quack';
-import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
+import {
+  QuackPage,
+  QuackRepository,
+} from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
 import { Injectable } from '@nestjs/common';
 
@@ -7,8 +10,12 @@ import { Injectable } from '@nestjs/common';
 export class QuacksService {
   constructor(private readonly quackRepository: QuackRepository) {}
 
-  async getQuacks(): Promise<Quack[]> {
-    return this.quackRepository.getQuacks();
+  async getQuacks(options?: {
+    search?: string;
+    offset?: number;
+    limit?: number;
+  }): Promise<QuackPage> {
+    return this.quackRepository.getQuacks(options);
   }
 
   async createQuack(
