@@ -8,14 +8,24 @@ export const quackUserSchema = z.object({
   username: z.string(),
 })
 
+export const MOODS = ["happy", "sad", "angry", "silly"] as const
+export const moodSchema = z.enum(MOODS)
+export type Mood = z.infer<typeof moodSchema>
+
 export const quackSchema = z.object({
   id: z.string(),
   text: z.string(),
+  mood: moodSchema.nullable(),
   userId: z.string(),
   createdAt: z.coerce.date(),
   user: quackUserSchema,
 })
 
 export const quacksSchema = z.array(quackSchema)
+
+export const quackPageSchema = z.object({
+  items: z.array(quackSchema),
+  nextOffset: z.number().nullable(),
+})
 
 export type Quack = z.infer<typeof quackSchema>

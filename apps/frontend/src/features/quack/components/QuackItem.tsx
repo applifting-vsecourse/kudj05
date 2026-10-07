@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatDate } from "@/lib/date"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
+import { MOOD_OPTIONS } from "@/features/quack/components/moodOptions"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
@@ -9,6 +10,7 @@ type QuackItemProps = { quack: Quack }
 
 export function QuackItem({ quack }: QuackItemProps) {
   const { name, username } = quack.user
+  const mood = quack.mood ? MOOD_OPTIONS[quack.mood] : null
 
   const initials = name
     .split(" ")
@@ -30,6 +32,18 @@ export function QuackItem({ quack }: QuackItemProps) {
           </span>
           <span className="text-xs text-muted-foreground">·</span>
           <time className="text-xs text-muted-foreground">{formatDate(quack.createdAt)}</time>
+          {mood ? (
+            <>
+              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">
+                <mood.icon
+                  aria-hidden
+                  className="mr-1 inline size-3.5 align-text-bottom"
+                />
+                {mood.label}
+              </span>
+            </>
+          ) : null}
         </div>
         <p className="text-sm break-words whitespace-pre-line">{quack.text}</p>
       </div>
