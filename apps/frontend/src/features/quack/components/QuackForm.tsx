@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { MoodPicker } from "@/components/MoodPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,10 +16,9 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
+import { moodSchema, type Mood } from "@/lib/moods"
 import { cn } from "@/lib/utils"
 
-import { moodSchema } from "@/features/quack/api/quackSchemas"
-import { MoodPicker } from "@/features/quack/components/MoodPicker"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
@@ -37,14 +37,18 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-type QuackFormProps = { className?: string }
+type QuackFormProps = {
+  className?: string
+  // The user's preferred mood for new quacks; the form starts out (and starts over) with it.
+  defaultMood?: Mood | null
+}
 
-export function QuackForm({ className }: QuackFormProps) {
+export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
   const addQuack = useAddQuack()
   const moodLabelId = useId()
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: null },
+    defaultValues: { text: "", mood: defaultMood },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
@@ -56,7 +60,7 @@ export function QuackForm({ className }: QuackFormProps) {
         text: values.text,
         mood: values.mood ?? undefined,
       },
-      { onSuccess: () => form.reset() },
+      { onSuccess: () => form.reset({ text: "", mood: defaultMood }) },
     )
   }
 

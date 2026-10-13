@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -8,10 +9,10 @@ import { QuackForm } from "@/features/quack/components/QuackForm"
 
 vi.mock("@/features/quack/api/addQuack", () => ({ addQuack: vi.fn() }))
 
-const renderForm = () =>
+const renderForm = (props: ComponentProps<typeof QuackForm> = {}) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <QuackForm />
+      <QuackForm {...props} />
     </QueryClientProvider>,
   )
 
@@ -50,6 +51,29 @@ describe("QuackForm mood", () => {
     renderForm()
 
     await userEvent.type(screen.getByLabelText("New quack"), "hello pond")
+    await userEvent.click(screen.getByRole("button", { name: "Quack" }))
+
+    await waitFor(() => expect(postedQuack()).toEqual({ text: "hello pond", mood: undefined }))
+  })
+
+  it("starts with the user's default mood picked and posts it", async () => {
+    renderForm({ defaultMood: "sad" })
+
+    expect(screen.getByRole("radio", { name: "Sad" })).toBeChecked()
+
+    await userEvent.type(screen.getByLabelText("New quack"), "hello pond")
+    await userEvent.click(screen.getByRole("button", { name: "Quack" }))
+
+    await waitFor(() => expect(postedQuack()).toEqual({ text: "hello pond", mood: "sad" }))
+    // After posting, the next quack starts from the default again, not from nothing.
+    await waitFor(() => expect(screen.getByRole("radio", { name: "Sad" })).toBeChecked())
+  })
+
+  it("lets the user change the default mood for a single quack", async () => {
+    renderForm({ defaultMood: "sad" })
+
+    await userEvent.type(screen.getByLabelText("New quack"), "hello pond")
+    await userEvent.click(screen.getByRole("radio", { name: "Sad" }))
     await userEvent.click(screen.getByRole("button", { name: "Quack" }))
 
     await waitFor(() => expect(postedQuack()).toEqual({ text: "hello pond", mood: undefined }))
