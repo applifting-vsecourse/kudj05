@@ -43,8 +43,11 @@ export class QuacksController {
   @ApiOperation({ summary: 'List and search quacks' })
   @ApiResponse({ status: 200, type: QuackPageResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  async list(@Query() query: ListQuacksDto): Promise<QuackPageResponseDto> {
-    const quacks = await this.quacksService.getQuacks({
+  async list(
+    @User() user: Identity,
+    @Query() query: ListQuacksDto,
+  ): Promise<QuackPageResponseDto> {
+    const quacks = await this.quacksService.getQuacks(user, {
       search: query.search,
       offset: query.offset,
       limit: query.limit,

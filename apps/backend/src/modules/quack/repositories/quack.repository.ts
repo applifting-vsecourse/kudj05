@@ -1,9 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
-import {
-  Quack as PrismaQuack,
-  User as PrismaUser,
-} from '@/generated/prisma/client';
-import { Mood, Quack } from '@/modules/quack/domain/quack';
+import { Prisma } from '@/generated/prisma/client';
+import { Mood, Poll, Quack } from '@/modules/quack/domain/quack';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -19,22 +16,54 @@ export type QuackPage = {
   nextOffset: number | null;
 };
 
-const mapPrismaQuackToDomain = (
-  quack: PrismaQuack & { user?: PrismaUser },
-): Quack => ({
+// Everything a quack needs to be shown to one viewer: its author, its poll
+// options with their vote counts, and that viewer's own vote.
+// The return type is left inferred on purpose: PrismaQuackWithRelations is derived from it.
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+const quackInclude = (viewerId: string) =>
+  ({
+    user: true,
+    pollOptions: {
+      orderBy: { position: 'asc' },
+      include: {
+        _count: { select: { votes: true } },
+        votes: { where: { userId: viewerId }, select: { userId: true } },
+      },
+    },
+  }) satisfies Prisma.QuackInclude;
+
+type PrismaQuackWithRelations = Prisma.QuackGetPayload<{
+  include: ReturnType<typeof quackInclude>;
+}>;
+
+const mapPollOptionsToDomain = (
+  options: PrismaQuackWithRelations['pollOptions'],
+): Poll | null => {
+  if (options.length === 0) return null;
+  return {
+    options: options.map((option) => ({
+      id: option.id,
+      text: option.text,
+      voteCount: option._count.votes,
+    })),
+    // `votes` is already narrowed to the viewer, so at most one option has a row.
+    myOptionId: options.find((option) => option.votes.length > 0)?.id ?? null,
+  };
+};
+
+const mapPrismaQuackToDomain = (quack: PrismaQuackWithRelations): Quack => ({
   id: quack.id,
   text: quack.text,
   mood: quack.mood,
   userId: quack.userId,
   createdAt: quack.createdAt,
   updatedAt: quack.updatedAt,
-  user: quack.user
-    ? {
-        id: quack.user.id,
-        name: quack.user.name,
-        username: quack.user.username ?? '',
-      }
-    : undefined,
+  poll: mapPollOptionsToDomain(quack.pollOptions),
+  user: {
+    id: quack.user.id,
+    name: quack.user.name,
+    username: quack.user.username ?? '',
+  },
 });
 
 /**
@@ -46,6 +75,7 @@ export class QuackRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async getQuacks(
+    viewerId: string,
     options: {
       search?: string;
       offset?: number;
@@ -56,7 +86,7 @@ export class QuackRepository {
     const limit = options.limit ?? DEFAULT_PAGE_SIZE;
     const search = options.search?.trim();
     const quacks = await this.prisma.quack.findMany({
-      include: { user: true },
+      include: quackInclude(viewerId),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(search ? {} : { skip: offset, take: limit + 1 }),
     });
@@ -93,7 +123,7 @@ export class QuackRepository {
         mood: createQuackData.mood,
         user: { connect: { id: createQuackData.userId } },
       },
-      include: { user: true },
+      include: quackInclude(createQuackData.userId),
     });
     return mapPrismaQuackToDomain(quack);
   }

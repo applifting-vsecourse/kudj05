@@ -10,12 +10,16 @@ import { Injectable } from '@nestjs/common';
 export class QuacksService {
   constructor(private readonly quackRepository: QuackRepository) {}
 
-  async getQuacks(options?: {
-    search?: string;
-    offset?: number;
-    limit?: number;
-  }): Promise<QuackPage> {
-    return this.quackRepository.getQuacks(options);
+  async getQuacks(
+    user: Identity,
+    options?: {
+      search?: string;
+      offset?: number;
+      limit?: number;
+    },
+  ): Promise<QuackPage> {
+    // the viewer decides which vote counts as "mine" in each poll
+    return this.quackRepository.getQuacks(user.id, options);
   }
 
   async createQuack(
