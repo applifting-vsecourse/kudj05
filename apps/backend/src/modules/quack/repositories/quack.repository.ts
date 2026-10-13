@@ -51,6 +51,10 @@ const mapPollOptionsToDomain = (
   };
 };
 
+const isUniqueConstraintError = (error: unknown): boolean =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === 'P2002';
+
 const mapPrismaQuackToDomain = (quack: PrismaQuackWithRelations): Quack => ({
   id: quack.id,
   text: quack.text,
@@ -110,6 +114,49 @@ export class QuackRepository {
       items: page.slice(0, limit).map(mapPrismaQuackToDomain),
       nextOffset: hasNextPage ? offset + limit : null,
     };
+  }
+
+  /** The poll of a quack as one viewer sees it; null when the quack doesn't exist or has no poll. */
+  async getPoll(quackId: string, viewerId: string): Promise<Poll | null> {
+    const options = await this.prisma.pollOption.findMany({
+      where: { quackId },
+      ...quackInclude(viewerId).pollOptions,
+    });
+    return mapPollOptionsToDomain(options);
+  }
+
+  /**
+   * Casts the user's vote or moves it to another option. The row is keyed by
+   * (quackId, userId), so there is never more than one vote per person per poll.
+   */
+  async saveVote(vote: {
+    quackId: string;
+    userId: string;
+    optionId: string;
+  }): Promise<void> {
+    const upsertVote = (): Promise<unknown> =>
+      this.prisma.pollVote.upsert({
+        where: {
+          quackId_userId: { quackId: vote.quackId, userId: vote.userId },
+        },
+        create: vote,
+        update: { optionId: vote.optionId },
+      });
+
+    try {
+      await upsertVote();
+    } catch (error) {
+      // Two first votes from the same user at the same moment (double click, two tabs):
+      // both try to insert, the database lets one through. The row exists now, so the
+      // second attempt updates it.
+      if (!isUniqueConstraintError(error)) throw error;
+      await upsertVote();
+    }
+  }
+
+  /** Takes the user's vote back. Does nothing when they haven't voted. */
+  async deleteVote(quackId: string, userId: string): Promise<void> {
+    await this.prisma.pollVote.deleteMany({ where: { quackId, userId } });
   }
 
   async createQuack(createQuackData: {
