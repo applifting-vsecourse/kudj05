@@ -171,4 +171,30 @@ Please stop tagging me.`,
       createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
     });
   }
+
+  console.log('Creating example poll');
+
+  const lunchPoll = await createQuack(prisma, {
+    text: 'Where do we go for lunch?',
+    userId: caffeinatedDuck.id,
+    createdAt: new Date(now - 10 * MINUTE_IN_MS),
+    pollOptions: ['The bakery bins', 'North reeds', 'Wherever the child is'],
+  });
+  const lunchOptions = await prisma.pollOption.findMany({
+    where: { quackId: lunchPoll.id },
+    orderBy: { position: 'asc' },
+  });
+  // Uneven on purpose, with one option left at zero, so the counts and bars have something to show.
+  const lunchVotes: { voter: User; option: number }[] = [
+    { voter: breadCritic, option: 0 },
+    { voter: pondAdmin, option: 0 },
+    { voter: deepDuckThoughts, option: 2 },
+  ];
+  await prisma.pollVote.createMany({
+    data: lunchVotes.map(({ voter, option }) => ({
+      quackId: lunchPoll.id,
+      userId: voter.id,
+      optionId: lunchOptions[option].id,
+    })),
+  });
 };
