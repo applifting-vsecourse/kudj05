@@ -162,12 +162,23 @@ export class QuackRepository {
   async createQuack(createQuackData: {
     text: string;
     mood?: Mood;
+    // Makes the quack a poll; the array order is the order the options show in.
+    pollOptions?: string[];
     userId: string;
   }): Promise<Quack> {
     const quack = await this.prisma.quack.create({
       data: {
         text: createQuackData.text,
         mood: createQuackData.mood,
+        // Created in the same statement as the quack, so a poll never exists half-written.
+        pollOptions: createQuackData.pollOptions
+          ? {
+              create: createQuackData.pollOptions.map((text, position) => ({
+                text,
+                position,
+              })),
+            }
+          : undefined,
         user: { connect: { id: createQuackData.userId } },
       },
       include: quackInclude(createQuackData.userId),

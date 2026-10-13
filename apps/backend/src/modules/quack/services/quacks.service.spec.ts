@@ -65,6 +65,25 @@ describe('QuacksService', () => {
     });
   });
 
+  it('creates a poll with the options in the order they were given', async () => {
+    const repository = mock<QuackRepository>();
+    repository.createQuack.mockResolvedValue(aQuack());
+
+    const service = new QuacksService(repository);
+    const user = { id: 'u1' } as Identity;
+
+    await service.createQuack(user, {
+      text: 'Lunch?',
+      pollOptions: ['Pizza', 'Sushi'],
+    });
+
+    expect(repository.createQuack).toHaveBeenCalledWith({
+      text: 'Lunch?',
+      userId: 'u1',
+      pollOptions: ['Pizza', 'Sushi'],
+    });
+  });
+
   describe('voting', () => {
     const user = { id: 'u1' } as Identity;
     const aPoll = (overrides: Partial<Poll> = {}): Poll => ({

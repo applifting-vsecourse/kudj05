@@ -7,6 +7,11 @@ export type QuackAuthor = {
 export const MOODS = ['happy', 'sad', 'angry', 'silly'] as const;
 export type Mood = (typeof MOODS)[number];
 
+export const POLL_MIN_OPTIONS = 2;
+export const POLL_MAX_OPTIONS = 4;
+// Matches the width of the poll_option.text column.
+export const POLL_OPTION_MAX_LENGTH = 80;
+
 export type PollOption = {
   id: string;
   text: string;
