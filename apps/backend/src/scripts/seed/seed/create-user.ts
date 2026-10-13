@@ -39,7 +39,10 @@ export async function createUser(
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      username,
+      // BetterAuth keeps the username lower-cased and the original spelling in
+      // displayUsername; its "already taken" check only works on that shape.
+      username: username.toLowerCase(),
+      displayUsername: username,
       role: role as UserRole,
     },
   });

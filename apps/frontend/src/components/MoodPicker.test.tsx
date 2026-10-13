@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
-import { MoodPicker } from "@/features/quack/components/MoodPicker"
+import { MoodPicker } from "@/components/MoodPicker"
 
 describe("MoodPicker", () => {
   it("offers the four moods side by side, each with a visible label", () => {
@@ -19,6 +19,29 @@ describe("MoodPicker", () => {
       "Angry",
       "Silly",
     ])
+  })
+
+  it("can offer an explicit none option, selected while there is no mood", async () => {
+    const onChange = vi.fn()
+    render(
+      <MoodPicker
+        value={null}
+        onChange={onChange}
+        noneLabel="None"
+      />,
+    )
+
+    expect(screen.getAllByRole("radio").map((option) => option.textContent)).toEqual([
+      "None",
+      "Happy",
+      "Sad",
+      "Angry",
+      "Silly",
+    ])
+    expect(screen.getByRole("radio", { name: "None" })).toBeChecked()
+
+    await userEvent.click(screen.getByRole("radio", { name: "Happy" }))
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("happy")
   })
 
   it("marks only the chosen mood as selected", () => {

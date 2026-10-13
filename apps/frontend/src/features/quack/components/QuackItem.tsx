@@ -1,8 +1,8 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatDate } from "@/lib/date"
+import { MOOD_OPTIONS } from "@/lib/moods"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
-import { MOOD_OPTIONS } from "@/features/quack/components/moodOptions"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
