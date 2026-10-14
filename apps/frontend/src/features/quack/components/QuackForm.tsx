@@ -1,7 +1,7 @@
 import { useId } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2 } from "lucide-react"
-import { useForm, useWatch } from "react-hook-form"
+import { ListChecks, Loader2, Plus, X } from "lucide-react"
+import { useFieldArray, useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { MoodPicker } from "@/components/MoodPicker"
@@ -15,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { moodSchema, type Mood } from "@/lib/moods"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,32 @@ import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
+// Same limits as the server: 2–4 options, each up to 80 characters.
+const POLL_MIN_OPTIONS = 2
+const POLL_MAX_OPTIONS = 4
+const POLL_OPTION_MAX_LENGTH = 80
+
+const pollOptionsSchema = z
+  .array(
+    z.object({
+      text: z
+        .string()
+        .trim()
+        .min(1, "Fill in this option")
+        .max(POLL_OPTION_MAX_LENGTH, `Keep it under ${POLL_OPTION_MAX_LENGTH} characters`),
+    }),
+  )
+  .superRefine((options, ctx) => {
+    // Compared the way the server compares them; the later copy gets the message.
+    const seen = new Set<string>()
+    options.forEach((option, index) => {
+      const key = option.text.toLocaleLowerCase()
+      if (seen.has(key)) {
+        ctx.addIssue({ code: "custom", message: "Options have to differ", path: [index, "text"] })
+      }
+      seen.add(key)
+    })
+  })
 
 const schema = z.object({
   // Optional: null means the quack is posted without a mood.
@@ -33,6 +60,8 @@ const schema = z.object({
     .trim()
     .min(1, "Write something first")
     .max(MAX_LENGTH, `Keep it under ${MAX_LENGTH} characters`),
+  // An empty list means a plain quack; a poll always has at least two fields on screen.
+  pollOptions: pollOptionsSchema,
 })
 
 type FormValues = z.infer<typeof schema>
@@ -46,10 +75,14 @@ type QuackFormProps = {
 export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
   const addQuack = useAddQuack()
   const moodLabelId = useId()
+  const pollLabelId = useId()
+  const emptyForm: FormValues = { text: "", mood: defaultMood, pollOptions: [] }
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: defaultMood },
+    defaultValues: emptyForm,
   })
+  const pollOptions = useFieldArray({ control: form.control, name: "pollOptions" })
+  const isPoll = pollOptions.fields.length > 0
 
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
@@ -59,8 +92,9 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
       {
         text: values.text,
         mood: values.mood ?? undefined,
+        poll: isPoll ? { options: values.pollOptions.map((option) => option.text) } : undefined,
       },
-      { onSuccess: () => form.reset({ text: "", mood: defaultMood }) },
+      { onSuccess: () => form.reset(emptyForm) },
     )
   }
 
@@ -95,6 +129,92 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
             </FormItem>
           )}
         />
+
+        {isPoll ? (
+          <div
+            role="group"
+            aria-labelledby={pollLabelId}
+            className="flex flex-col gap-3"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span
+                id={pollLabelId}
+                className="text-sm font-medium"
+              >
+                Poll
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={addQuack.isPending}
+                onClick={() => pollOptions.replace([])}
+              >
+                Remove poll
+              </Button>
+            </div>
+            {pollOptions.fields.map((option, index) => (
+              <FormField
+                key={option.id}
+                control={form.control}
+                name={`pollOptions.${index}.text`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Option {index + 1}</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormControl>
+                        <Input
+                          disabled={addQuack.isPending}
+                          {...field}
+                        />
+                      </FormControl>
+                      {index >= POLL_MIN_OPTIONS ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remove option ${index + 1}`}
+                          disabled={addQuack.isPending}
+                          onClick={() => pollOptions.remove(index)}
+                        >
+                          <X />
+                        </Button>
+                      ) : null}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
+            {pollOptions.fields.length < POLL_MAX_OPTIONS ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="self-start"
+                disabled={addQuack.isPending}
+                onClick={() => pollOptions.append({ text: "" })}
+              >
+                <Plus aria-hidden />
+                Add option
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={addQuack.isPending}
+            onClick={() =>
+              // Focuses the first of the two new fields.
+              pollOptions.append([{ text: "" }, { text: "" }], { focusIndex: 0 })
+            }
+          >
+            <ListChecks aria-hidden />
+            Add poll
+          </Button>
+        )}
 
         <div className="flex flex-wrap items-end justify-between gap-3">
           <FormField
