@@ -29,6 +29,8 @@ const MAX_LENGTH = 280
 const POLL_MIN_OPTIONS = 2
 const POLL_MAX_OPTIONS = 4
 const POLL_OPTION_MAX_LENGTH = 80
+// Placeholders are examples that answer the example question, never labels.
+const OPTION_EXAMPLES = ["Pizza", "Sushi", "Burgers", "Salad"]
 
 const pollOptionsSchema = z
   .array(
@@ -111,31 +113,14 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
           </Alert>
         ) : null}
 
-        <FormField
-          control={form.control}
-          name="text"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>New quack</FormLabel>
-              <FormControl>
-                <Textarea
-                  rows={3}
-                  placeholder="Quack something..."
-                  disabled={addQuack.isPending}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {isPoll ? (
-          <div
-            role="group"
-            aria-labelledby={pollLabelId}
-            className="flex flex-col gap-3"
-          >
+        {/* With a poll the text is its question, so both sit in one frame. The text field keeps
+            its place in the tree either way, so adding or removing the poll doesn't remount it. */}
+        <div
+          role={isPoll ? "group" : undefined}
+          aria-labelledby={isPoll ? pollLabelId : undefined}
+          className={cn("flex flex-col gap-3", isPoll && "rounded-lg border border-border p-4")}
+        >
+          {isPoll ? (
             <div className="flex items-center justify-between gap-3">
               <span
                 id={pollLabelId}
@@ -153,68 +138,94 @@ export function QuackForm({ className, defaultMood = null }: QuackFormProps) {
                 Remove poll
               </Button>
             </div>
-            {pollOptions.fields.map((option, index) => (
-              <FormField
-                key={option.id}
-                control={form.control}
-                name={`pollOptions.${index}.text`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Option {index + 1}</FormLabel>
-                    <div className="flex items-center gap-2">
-                      <FormControl>
-                        <Input
-                          disabled={addQuack.isPending}
-                          {...field}
-                        />
-                      </FormControl>
-                      {index >= POLL_MIN_OPTIONS ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Remove option ${index + 1}`}
-                          disabled={addQuack.isPending}
-                          onClick={() => pollOptions.remove(index)}
-                        >
-                          <X />
-                        </Button>
-                      ) : null}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-            {pollOptions.fields.length < POLL_MAX_OPTIONS ? (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="self-start"
-                disabled={addQuack.isPending}
-                onClick={() => pollOptions.append({ text: "" })}
-              >
-                <Plus aria-hidden />
-                Add option
-              </Button>
-            ) : null}
-          </div>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={addQuack.isPending}
-            onClick={() =>
-              // Focuses the first of the two new fields.
-              pollOptions.append([{ text: "" }, { text: "" }], { focusIndex: 0 })
-            }
-          >
-            <ListChecks aria-hidden />
-            Add poll
-          </Button>
-        )}
+          ) : null}
+
+          <FormField
+            control={form.control}
+            name="text"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{isPoll ? "Question" : "New quack"}</FormLabel>
+                <FormControl>
+                  <Textarea
+                    rows={isPoll ? 2 : 3}
+                    placeholder={isPoll ? "Where do we go for lunch?" : "Quack something..."}
+                    disabled={addQuack.isPending}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {isPoll ? (
+            <>
+              {pollOptions.fields.map((option, index) => (
+                <FormField
+                  key={option.id}
+                  control={form.control}
+                  name={`pollOptions.${index}.text`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Option {index + 1}</FormLabel>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input
+                            placeholder={OPTION_EXAMPLES[index]}
+                            disabled={addQuack.isPending}
+                            {...field}
+                          />
+                        </FormControl>
+                        {index >= POLL_MIN_OPTIONS ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Remove option ${index + 1}`}
+                            disabled={addQuack.isPending}
+                            onClick={() => pollOptions.remove(index)}
+                          >
+                            <X />
+                          </Button>
+                        ) : null}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ))}
+              {pollOptions.fields.length < POLL_MAX_OPTIONS ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  disabled={addQuack.isPending}
+                  onClick={() => pollOptions.append({ text: "" })}
+                >
+                  <Plus aria-hidden />
+                  Add option
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="self-start"
+              disabled={addQuack.isPending}
+              onClick={() =>
+                // Focuses the first of the two new fields.
+                pollOptions.append([{ text: "" }, { text: "" }], { focusIndex: 0 })
+              }
+            >
+              <ListChecks aria-hidden />
+              Add poll
+            </Button>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-end justify-between gap-3">
           <FormField
