@@ -11,9 +11,10 @@ abych hned viděl, kolik lidí co zvolilo, a nikdo nemusel počítat odpovědi r
 ### Založení ankety
 
 - [ ] Ve formuláři „New quack“ je tlačítko „Add poll“ s ikonou. Po kliknutí se pod textem příspěvku objeví dvě pole s viditelnými popisky „Option 1“ a „Option 2“ a kurzor je v prvním z nich.
+- [ ] S anketou se popisek textu příspěvku změní z „New quack“ na „Question“ s ukázkou „Where do we go for lunch?“; pole odpovědí mají ukázky „Pizza“, „Sushi“, „Burgers“, „Salad“. Otázka a odpovědi jsou v jednom tenkém rámečku s nadpisem „Poll“, aby bylo vidět, že k sobě patří.
 - [ ] Tlačítko „Add option“ přidá další pole, nejvýš do čtyř; při čtyřech polích tlačítko zmizí.
 - [ ] Třetí a čtvrté pole lze odebrat tlačítkem s ikonou (`aria-label` „Remove option 3“); pod dvě pole se jít nedá.
-- [ ] Tlačítko „Remove poll“ pole skryje a příspěvek se odešle jako obyčejný quack bez ankety.
+- [ ] Tlačítko „Remove poll“ pole skryje, vrátí popisek „New quack“ (napsaný text zůstane) a příspěvek se odešle jako obyčejný quack bez ankety.
 - [ ] Prázdné pole odpovědi při odeslání zobrazí pod polem „Fill in this option“ a nic se neodešle.
 - [ ] Odpověď delší než 80 znaků zobrazí pod polem „Keep it under 80 characters“.
 - [ ] Dvě stejné odpovědi (bez ohledu na velikost písmen a mezery na okrajích) zobrazí pod druhou z nich „Options have to differ“.
@@ -55,7 +56,7 @@ abych hned viděl, kolik lidí co zvolilo, a nikdo nemusel počítat odpovědi r
 
 ## Rozhodnutí UX a implementace
 
-- Anketa je součást quacku: text quacku je otázka, quack má nejvýš jednu anketu.
+- Anketa je součást quacku: text quacku je otázka, quack má nejvýš jednu anketu. Ve formuláři je to vidět: text dostane popisek „Question“ a je s odpověďmi v jednom rámečku.
 - 2 až 4 odpovědi, každá 1–80 znaků po oříznutí mezer, bez duplicit.
 - Počty jsou viditelné vždy. Zobrazuje se počet a pruh, ne procenta — zaokrouhlená procenta nedávají vždy 100 %.
 - Počty se nikde neukládají jako číslo; vždy se počítají z uložených hlasů, takže se nemohou rozejít se skutečností.
