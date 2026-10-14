@@ -13,6 +13,7 @@ const quack = (id: string, text: string) => ({
   id,
   text,
   mood: null,
+  poll: null,
   userId: "u1",
   createdAt: "2026-01-01T12:00:00Z",
   user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
