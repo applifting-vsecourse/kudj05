@@ -42,3 +42,4 @@ export const quackPageSchema = z.object({
 
 export type Quack = z.infer<typeof quackSchema>
 export type Poll = z.infer<typeof pollSchema>
+export type QuackPage = z.infer<typeof quackPageSchema>

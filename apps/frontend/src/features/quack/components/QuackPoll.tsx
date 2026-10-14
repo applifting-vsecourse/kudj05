@@ -4,12 +4,11 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 
 import type { Poll } from "@/features/quack/api/quackSchemas"
+import { useVote } from "@/features/quack/hooks/useVote"
 
 type QuackPollProps = {
+  quackId: string
   poll: Poll
-  // Called with the picked option, or null when the user takes their vote back.
-  // Without it the poll only shows the results.
-  onVote?: (optionId: string | null) => void
   className?: string
 }
 
@@ -18,7 +17,9 @@ const formatTotal = (total: number) => {
   return total === 1 ? "1 vote" : `${total} votes`
 }
 
-export function QuackPoll({ poll, onVote, className }: QuackPollProps) {
+export function QuackPoll({ quackId, poll, className }: QuackPollProps) {
+  const vote = useVote(quackId)
+
   // Summed here rather than sent by the server, so it can never disagree with the numbers above it.
   const total = poll.options.reduce((sum, option) => sum + option.voteCount, 0)
 
@@ -31,8 +32,13 @@ export function QuackPoll({ poll, onVote, className }: QuackPollProps) {
         aria-label="Poll options"
         // Radix reports "nothing selected" as an empty string — picking your own option again takes the vote back.
         value={poll.myOptionId ?? ""}
-        onValueChange={(next) => onVote?.(next || null)}
-        disabled={!onVote}
+        onValueChange={(next) => {
+          // One vote at a time, so requests can't overtake each other. The poll already shows
+          // the pending vote, so the click is ignored rather than the options being dimmed.
+          if (vote.isPending) return
+          vote.mutate(next || null)
+        }}
+        aria-busy={vote.isPending}
         className="w-full flex-col items-stretch"
       >
         {poll.options.map((option) => {
@@ -72,6 +78,15 @@ export function QuackPoll({ poll, onVote, className }: QuackPollProps) {
         })}
       </ToggleGroup>
       <p className="text-xs text-muted-foreground">{formatTotal(total)}</p>
+      {/* Cleared by the next attempt: a new vote resets the mutation. */}
+      {vote.isError ? (
+        <p
+          role="alert"
+          className="text-sm text-destructive"
+        >
+          Your vote wasn’t saved. Try again.
+        </p>
+      ) : null}
     </div>
   )
 }
