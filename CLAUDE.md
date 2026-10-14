@@ -30,6 +30,10 @@ The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md
 
 Every string a user can see or hear is English, sentence case: labels, placeholders, empty states, errors, `aria-label`s. A story or a conversation in Czech is the language of the spec, not of the product — don't translate existing copy, and when a story quotes UI text, quote the English string.
 
+### Invariants live in the database
+
+A rule like "one vote per person" or "one like per user" is a primary key or a unique constraint, not just a check in the service — double clicks and two tabs race past any check. Counts that can be computed (votes, likes, replies) are computed from rows, never stored as a number that has to be kept in sync.
+
 ### The app is already running
 
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
