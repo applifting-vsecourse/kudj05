@@ -5,10 +5,13 @@ import { AuthenticatedUserGuard } from '@/shared/auth/guards/authenticated-user.
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
+  Put,
   Query,
   UseGuards,
   UsePipes,
@@ -23,7 +26,8 @@ import {
 import { CreateQuackDto } from './dto/create-quack.dto';
 import { ListQuacksDto } from './dto/list-quacks.dto';
 import { QuackPageResponseDto } from './dto/quack.page.response.dto';
-import { QuackResponseDto } from './dto/quack.response.dto';
+import { PollResponseDto, QuackResponseDto } from './dto/quack.response.dto';
+import { VoteDto } from './dto/vote.dto';
 
 @ApiTags('quacks')
 @Controller('quacks')
@@ -43,8 +47,11 @@ export class QuacksController {
   @ApiOperation({ summary: 'List and search quacks' })
   @ApiResponse({ status: 200, type: QuackPageResponseDto })
   @ApiResponse({ status: 401, description: 'Not signed in' })
-  async list(@Query() query: ListQuacksDto): Promise<QuackPageResponseDto> {
-    const quacks = await this.quacksService.getQuacks({
+  async list(
+    @User() user: Identity,
+    @Query() query: ListQuacksDto,
+  ): Promise<QuackPageResponseDto> {
+    const quacks = await this.quacksService.getQuacks(user, {
       search: query.search,
       offset: query.offset,
       limit: query.limit,
@@ -67,7 +74,38 @@ export class QuacksController {
     const quack = await this.quacksService.createQuack(user, {
       text: body.text,
       mood: body.mood,
+      pollOptions: body.poll?.options,
     });
     return QuackResponseDto.fromDomain(quack);
+  }
+
+  // PUT, not POST: "my vote in this poll is X" can be repeated safely, and the
+  // first vote and a changed vote are the same call.
+  @Put(':quackId/vote')
+  @ApiOperation({ summary: 'Vote in a poll, or move your vote' })
+  @ApiResponse({ status: 200, type: PollResponseDto })
+  @ApiResponse({ status: 400, description: 'Option is not part of the poll' })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack has no poll' })
+  async vote(
+    @User() user: Identity,
+    @Param('quackId') quackId: string,
+    @Body() body: VoteDto,
+  ): Promise<PollResponseDto> {
+    const poll = await this.quacksService.vote(user, quackId, body.optionId);
+    return PollResponseDto.fromDomain(poll);
+  }
+
+  @Delete(':quackId/vote')
+  @ApiOperation({ summary: 'Take your vote back' })
+  @ApiResponse({ status: 200, type: PollResponseDto })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack has no poll' })
+  async removeVote(
+    @User() user: Identity,
+    @Param('quackId') quackId: string,
+  ): Promise<PollResponseDto> {
+    const poll = await this.quacksService.removeVote(user, quackId);
+    return PollResponseDto.fromDomain(poll);
   }
 }
