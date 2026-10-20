@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { LogOut, Settings } from "lucide-react"
+import { ChartColumn, LogOut, Settings } from "lucide-react"
 
 import { ROUTES } from "@/app/routes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -69,6 +69,15 @@ export function HeaderMenu() {
             Settings
           </Link>
         </DropdownMenuItem>
+        {/* Hidden for everyone else; the API refuses them with 403 anyway. */}
+        {user.role === "admin" ? (
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.stats}>
+              <ChartColumn className="size-4" />
+              Stats
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           onSelect={() => signOut.mutate()}
           disabled={signOut.isPending}
