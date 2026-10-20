@@ -1,85 +1,59 @@
-# Ankety v příspěvcích
+# Mazání příspěvků a filtr „Moje“
 
 ## User story
 
-Jako přihlášený uživatel, který se chce na něco zeptat ostatních,
-chci k příspěvku přidat několik odpovědí, ze kterých si každý jednu vybere,
-abych hned viděl, kolik lidí co zvolilo, a nikdo nemusel počítat odpovědi ručně.
+Jako autor příspěvků
+chci smazat své příspěvky a vidět ve feedu jen ty svoje,
+abych mohl uklidit, co jsem napsal.
 
 ## Acceptance criteria
 
-### Založení ankety
+### Mazání
 
-- [ ] Ve formuláři „New quack“ je tlačítko „Add poll“ s ikonou. Po kliknutí se pod textem příspěvku objeví dvě pole s viditelnými popisky „Option 1“ a „Option 2“ a kurzor je v prvním z nich.
-- [ ] S anketou se popisek textu příspěvku změní z „New quack“ na „Question“ s ukázkou „Where do we go for lunch?“; pole odpovědí mají ukázky „Pizza“, „Sushi“, „Burgers“, „Salad“. Otázka a odpovědi jsou v jednom tenkém rámečku s nadpisem „Poll“, aby bylo vidět, že k sobě patří.
-- [ ] Tlačítko „Add option“ přidá další pole, nejvýš do čtyř; při čtyřech polích tlačítko zmizí.
-- [ ] Třetí a čtvrté pole lze odebrat tlačítkem s ikonou (`aria-label` „Remove option 3“); pod dvě pole se jít nedá.
-- [ ] Tlačítko „Remove poll“ pole skryje, vrátí popisek „New quack“ (napsaný text zůstane) a příspěvek se odešle jako obyčejný quack bez ankety.
-- [ ] Prázdné pole odpovědi při odeslání zobrazí pod polem „Fill in this option“ a nic se neodešle.
-- [ ] Odpověď delší než 80 znaků zobrazí pod polem „Keep it under 80 characters“.
-- [ ] Dvě stejné odpovědi (bez ohledu na velikost písmen a mezery na okrajích) zobrazí pod druhou z nich „Options have to differ“.
-- [ ] Text příspěvku je i u ankety povinný (je to otázka) a platí pro něj stávající pravidla. Náladu lze k anketě přidat jako dosud.
-- [ ] Během odesílání je tlačítko „Quack“ neaktivní a ukazuje indikátor; po úspěchu se formulář vrátí do výchozího stavu bez polí ankety.
-- [ ] Odeslaný příspěvek se objeví ve feedu s anketou: odpovědi jsou ve stejném pořadí, jak byly zadány, u každé je 0 a pod nimi „No votes yet“.
+- [ ] U každého mého příspěvku je tlačítko „Delete“ (ikona koše s textem). U cizích příspěvků není.
+- [ ] Po kliknutí na „Delete“ se aplikace zeptá: dialog „Delete this quack?“ s tlačítky „Cancel“ a „Delete“. Dokud nepotvrdím, nic se nesmaže.
+- [ ] „Cancel“ (i Escape) dialog zavře a příspěvek zůstane.
+- [ ] Po potvrzení příspěvek zmizí z feedu, z „Mine“ i z výsledků vyhledávání, a to bez reloadu stránky. U příspěvku s anketou zmizí i anketa a její hlasy.
+- [ ] Smazaný příspěvek je pryč i po reloadu a vidí ho tak i ostatní účty.
+- [ ] Když se smazání nepodaří (např. bez připojení), příspěvek zůstane a objeví se hláška „Couldn't delete the quack. Try again.“
+- [ ] Cizí příspěvek nesmaže nikdo, ani přímým voláním API: `DELETE /api/quacks/:id` na cizí příspěvek vrátí 403 a nic se nesmaže.
+- [ ] Nepřihlášený dostane na `DELETE /api/quacks/:id` 401; neexistující příspěvek vrátí 404.
 
-### Zobrazení ankety
+### Filtr
 
-- [ ] Anketa se zobrazuje pod textem příspěvku v běžném feedu i ve výsledcích vyhledávání.
-- [ ] U každé odpovědi je její text, počet hlasů a nenápadný pruh, jehož šířka odpovídá podílu hlasů.
-- [ ] Počty jsou vidět vždy, i když jsem ještě nehlasoval.
-- [ ] Pod odpověďmi je součet: „No votes yet“, „1 vote“ nebo „N votes“. Součet se vždy rovná součtu čísel u odpovědí.
-- [ ] Odpověď, kterou jsem zvolil, je označena ikonou a textem „Your vote“; po reloadu označení zůstane.
-- [ ] Příspěvek bez ankety vypadá stejně jako dosud.
-
-### Hlasování
-
-- [ ] Kliknutí na odpověď ji označí jako mou a zvýší její počet i součet o 1 okamžitě, bez čekání na server.
-- [ ] Kliknutí na jinou odpověď hlas přesune: původní odpověď má o 1 méně, nová o 1 více, součet se nemění.
-- [ ] Kliknutí na mou zvolenou odpověď hlas zruší: počet i součet klesnou o 1 a označení zmizí.
-- [ ] Hlasovat může i autor ankety.
-- [ ] Jeden účet má v anketě nejvýš jeden hlas, i když kliká rychle za sebou nebo hlasuje ze dvou záložek současně; po reloadu je započítán jen poslední výběr.
-- [ ] Druhý účet po reloadu vidí hlas prvního účtu započtený; po změně hlasu vidí po reloadu změněné počty.
-- [ ] Počty se obnoví i bez reloadu při návratu na záložku prohlížeče.
-- [ ] Když se hlas nepodaří uložit (např. bez připojení), počty i označení se vrátí do stavu před kliknutím a přímo pod anketou se zobrazí „Your vote wasn’t saved. Try again.“ Hláška zmizí při dalším pokusu o hlas.
-- [ ] Odpovědi jdou ovládat klávesnicí (Tab, Enter/mezerník) a mají viditelný focus.
+- [ ] Nad feedem jsou dvě záložky: „All“ (výchozí) a „Mine“. Jdou ovládat klávesnicí (šipky, Tab) a mají viditelný focus.
+- [ ] „Mine“ ukazuje jen moje příspěvky; „All“ všechny jako dosud.
+- [ ] Filtr se řídí přihlášením, ne parametrem: v URL ani v těle požadavku není žádné `userId`, jen `mine=true`.
+- [ ] Vyhledávání funguje v obou záložkách: v „Mine“ hledá jen mezi mými příspěvky.
+- [ ] Když nemám žádný příspěvek, „Mine“ napíše „You haven't posted any quacks yet.“ a nabídne tlačítko „Write your first quack“, které přesune kurzor do formuláře „New quack“.
+- [ ] Nepřihlášený se k feedu nedostane, stejně jako dnes.
 
 ## Mimo scope
 
-- Živé aktualizace cizích hlasů bez akce uživatele (websocket, pravidelné dotazování).
-- Seznam, kdo jak hlasoval; ankety jsou anonymní, vidím jen součty a svůj hlas.
-- Výběr více odpovědí najednou.
-- Uzavření ankety, časový limit, úprava nebo smazání ankety po odeslání.
-- Procenta u odpovědí.
-- Hledání v textech odpovědí (vyhledávání dál prochází text příspěvku a autora).
-- Samostatná stránka nebo přehled anket, notifikace o hlasech.
-- Měření, jak moc se ankety používají (zjistí se pohledem do feedu / databáze).
+- Úprava příspěvku, hromadné mazání, vrácení smazaného (koš, „Undo“).
+- Mazání cizích příspěvků moderátorem nebo adminem.
+- Filtr podle jiného autora, počet příspěvků na záložce.
+- Zapamatování zvolené záložky po reloadu.
 
 ## Rozhodnutí UX a implementace
 
-- Anketa je součást quacku: text quacku je otázka, quack má nejvýš jednu anketu. Ve formuláři je to vidět: text dostane popisek „Question“ a je s odpověďmi v jednom rámečku.
-- 2 až 4 odpovědi, každá 1–80 znaků po oříznutí mezer, bez duplicit.
-- Počty jsou viditelné vždy. Zobrazuje se počet a pruh, ne procenta — zaokrouhlená procenta nedávají vždy 100 %.
-- Počty se nikde neukládají jako číslo; vždy se počítají z uložených hlasů, takže se nemohou rozejít se skutečností.
-- Pravidlo „jeden člověk, jeden hlas“ vynucuje databáze, ne jen aplikace.
-- Hlas je optimistický: UI se změní hned, po odpovědi serveru se přepíše tím, co vrátil server, a feed se znovu načte.
-- Dokud se hlas ukládá, další klik v téže anketě se nepřijímá (odpovědi jsou krátce neaktivní), aby se požadavky nepředbíhaly.
-- Chyba hlasu je text přímo u ankety, ne toast — je u věci, které se týká, a nezmizí sama.
+- Mazání je nevratné, proto se ptáme `AlertDialog` z UI kitu (ne `Dialog`): vyžaduje rozhodnutí, nezavře se kliknutím mimo. Tlačítko „Delete“ v dialogu je `destructive`.
+- Pravidlo „smazat smí jen autor“ platí na serveru: autor se bere ze session a je součástí samotného `DELETE ... WHERE id AND userId`, takže se nedá předběhnout ani souběhem. Tlačítko v UI je jen pohodlí.
+- Smazání příspěvku smaže v databázi i jeho odpovědi ankety a hlasy (`ON DELETE CASCADE`), nic se nemigruje ani nepočítá ručně.
+- Filtr „Mine“ je `GET /api/quacks?mine=true`; kdo jsem, určuje session.
 - Texty v rozhraní jsou anglicky, ikony z lucide s textovým popiskem, žádné emoji.
-- Odpovědi jsou `ToggleGroup` z UI kitu (typ `single`, který umí i odznačení), ne ručně psané tlačítko.
 
 ## Mimořádné stavy
 
-- Anketa bez hlasů: u všech odpovědí 0, pruhy prázdné, „No votes yet“.
-- Feed bez jediné ankety: nic se nemění, žádný zvláštní prázdný stav.
-- Načítání a chyba načtení feedu: stávající stavy feedu, anketa nemá vlastní.
-- Neuložený hlas: návrat do původního stavu a hláška pod anketou.
-- Hlas pro odpověď, která do ankety nepatří, nebo pro quack bez ankety (jen přímým voláním API): server odmítne, nic se neuloží.
+- Žádný můj příspěvek: „Mine“ má vlastní prázdný stav s nabídkou napsat první.
+- Smazal jsem svůj poslední příspěvek v „Mine“: zobrazí se tentýž prázdný stav.
+- Příspěvek mezitím smazal jiný z mých oken: smazání v druhém okně vrátí 404, hláška o neúspěchu a feed se po refetchi srovná.
+- Načítání a chyba načtení: stávající stavy feedu, platí i pro „Mine“.
 
 ## Definition of done
 
-- Dva účty v produkci: jeden se zeptá, druhý hlasuje, první po reloadu hlas vidí.
-- Změna hlasu změní počty pro všechny.
-- Formuláře projdou kontrolou podle `DESIGN.md` (sekce Forms), žádné červené vlajky.
+- Dva účty v produkci (normální a anonymní okno): autor vidí „Delete“, aplikace se zeptá, příspěvek zmizí; druhý účet „Delete“ u cizího příspěvku nevidí.
+- Přes Swagger: `DELETE` cizího příspěvku vrátí 403, po odhlášení 401.
+- „Mine“ ukazuje jen moje a v požadavku není `userId`.
 - Každou změnu umím vysvětlit.
 - Nové pravidlo v `CLAUDE.md`, nebo důvod, proč se není co naučit.
-- Nastavení i ankety jsou v `main`, nasazené a oznámené v Seminars.

@@ -3,7 +3,11 @@
 import { Poll, Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { mock } from 'jest-mock-extended';
 import { QuacksService } from './quacks.service';
 
@@ -81,6 +85,56 @@ describe('QuacksService', () => {
       text: 'Lunch?',
       userId: 'u1',
       pollOptions: ['Pizza', 'Sushi'],
+    });
+  });
+
+  it('passes the "mine" filter on with the viewer from the session', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue({ items: [], nextOffset: null });
+
+    const service = new QuacksService(repository);
+
+    await service.getQuacks({ id: 'u1' } as Identity, { mine: true });
+
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', { mine: true });
+  });
+
+  describe('deleting', () => {
+    const user = { id: 'u1' } as Identity;
+
+    it('deletes a quack its author asks to delete', async () => {
+      const repository = mock<QuackRepository>();
+      repository.getAuthorId.mockResolvedValue('u1');
+
+      const service = new QuacksService(repository);
+
+      await service.deleteQuack(user, 'q1');
+
+      expect(repository.deleteQuack).toHaveBeenCalledWith('q1', 'u1');
+    });
+
+    it("refuses to delete someone else's quack", async () => {
+      const repository = mock<QuackRepository>();
+      repository.getAuthorId.mockResolvedValue('u2');
+
+      const service = new QuacksService(repository);
+
+      await expect(service.deleteQuack(user, 'q1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
+    });
+
+    it('reports a quack that does not exist', async () => {
+      const repository = mock<QuackRepository>();
+      repository.getAuthorId.mockResolvedValue(null);
+
+      const service = new QuacksService(repository);
+
+      await expect(service.deleteQuack(user, 'nope')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(repository.deleteQuack).not.toHaveBeenCalled();
     });
   });
 

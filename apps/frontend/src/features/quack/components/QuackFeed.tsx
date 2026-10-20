@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDebouncedValue } from "@/hooks/useDebouncedValue"
 
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
@@ -13,7 +14,18 @@ import { QuackSearch } from "@/features/quack/components/QuackSearch"
 // Long enough to skip a request per keystroke, short enough to still feel live.
 const SEARCH_DEBOUNCE_MS = 250
 
-export function QuackFeed() {
+type FeedTab = "all" | "mine"
+
+type QuackFeedProps = {
+  // Offered on an empty Mine tab, e.g. by moving the cursor to the new-quack form.
+  onWriteFirst?: () => void
+  // Quacks by this user get a Delete action.
+  currentUserId?: string
+}
+
+export function QuackFeed({ onWriteFirst, currentUserId }: QuackFeedProps) {
+  const [tab, setTab] = useState<FeedTab>("all")
+  const isMine = tab === "mine"
   // null = search is closed; any string, even an empty one = search is open.
   const [search, setSearch] = useState<string | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -51,7 +63,7 @@ export function QuackFeed() {
   }, [isSearchOpen])
 
   const quacksQuery = useInfiniteQuery({
-    ...quacksQueryOptions(query),
+    ...quacksQueryOptions(query, isMine),
     enabled: !isAwaitingQuery,
   })
   // An open search with nothing typed shows no quacks at all, not the cached feed.
@@ -66,6 +78,21 @@ export function QuackFeed() {
   const searchEmptyMessage = isAwaitingQuery
     ? "Matching quacks will show up here as you type."
     : `No quacks match “${query}”.`
+  const emptyMessage = isSearchOpen
+    ? searchEmptyMessage
+    : isMine
+      ? "You haven't posted any quacks yet."
+      : undefined
+  const emptyAction =
+    isMine && !isSearchOpen && onWriteFirst ? (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onWriteFirst}
+      >
+        Write your first quack
+      </Button>
+    ) : undefined
 
   return (
     <Collapsible
@@ -98,18 +125,31 @@ export function QuackFeed() {
         />
       </CollapsibleContent>
 
-      <QuackList
-        quacks={quacks}
-        isLoading={!isAwaitingQuery && quacksQuery.isLoading}
-        isFetchingNextPage={quacksQuery.isFetchingNextPage}
-        isStale={isSearchOpen && quacksQuery.isPlaceholderData}
-        emptyMessage={isSearchOpen ? searchEmptyMessage : undefined}
-        error={isAwaitingQuery ? undefined : (quacksQuery.error ?? undefined)}
-        // Only the error state offers a retry — posting invalidates the list,
-        // and refocusing the tab refetches it.
-        onReload={() => void quacksQuery.refetch()}
-        onLoadMore={canLoadMore ? () => void quacksQuery.fetchNextPage() : undefined}
-      />
+      <Tabs
+        value={tab}
+        onValueChange={(value) => setTab(value as FeedTab)}
+      >
+        <TabsList variant="line">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="mine">Mine</TabsTrigger>
+        </TabsList>
+        <TabsContent value={tab}>
+          <QuackList
+            quacks={quacks}
+            isLoading={!isAwaitingQuery && quacksQuery.isLoading}
+            isFetchingNextPage={quacksQuery.isFetchingNextPage}
+            isStale={isSearchOpen && quacksQuery.isPlaceholderData}
+            emptyMessage={emptyMessage}
+            emptyAction={emptyAction}
+            currentUserId={currentUserId}
+            error={isAwaitingQuery ? undefined : (quacksQuery.error ?? undefined)}
+            // Only the error state offers a retry — posting invalidates the list,
+            // and refocusing the tab refetches it.
+            onReload={() => void quacksQuery.refetch()}
+            onLoadMore={canLoadMore ? () => void quacksQuery.fetchNextPage() : undefined}
+          />
+        </TabsContent>
+      </Tabs>
     </Collapsible>
   )
 }

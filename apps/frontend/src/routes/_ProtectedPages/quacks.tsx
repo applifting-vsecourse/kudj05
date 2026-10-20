@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { Seo } from "@/components/Seo"
@@ -12,6 +13,9 @@ export const Route = createFileRoute("/_ProtectedPages/quacks")({
 
 function QuacksPage() {
   const { user } = useSession()
+  const formRef = useRef<HTMLDivElement>(null)
+
+  const focusForm = () => formRef.current?.querySelector("textarea")?.focus()
 
   return (
     <>
@@ -19,12 +23,17 @@ function QuacksPage() {
       <section className="mx-auto w-full max-w-2xl px-4 py-8">
         <h1 className="mb-4 text-2xl font-semibold tracking-tight">Quacks</h1>
 
-        <QuackForm
-          className="mb-8"
-          defaultMood={user?.defaultMood}
-        />
+        <div ref={formRef}>
+          <QuackForm
+            className="mb-8"
+            defaultMood={user?.defaultMood}
+          />
+        </div>
 
-        <QuackFeed />
+        <QuackFeed
+          currentUserId={user?.id}
+          onWriteFirst={focusForm}
+        />
       </section>
     </>
   )

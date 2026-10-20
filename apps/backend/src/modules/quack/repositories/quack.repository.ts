@@ -82,6 +82,8 @@ export class QuackRepository {
     viewerId: string,
     options: {
       search?: string;
+      // Only the viewer's own quacks.
+      mine?: boolean;
       offset?: number;
       limit?: number;
     } = {},
@@ -90,6 +92,7 @@ export class QuackRepository {
     const limit = options.limit ?? DEFAULT_PAGE_SIZE;
     const search = options.search?.trim();
     const quacks = await this.prisma.quack.findMany({
+      where: options.mine ? { userId: viewerId } : undefined,
       include: quackInclude(viewerId),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       ...(search ? {} : { skip: offset, take: limit + 1 }),
@@ -114,6 +117,20 @@ export class QuackRepository {
       items: page.slice(0, limit).map(mapPrismaQuackToDomain),
       nextOffset: hasNextPage ? offset + limit : null,
     };
+  }
+
+  /** Who wrote the quack; null when it doesn't exist. */
+  async getAuthorId(quackId: string): Promise<string | null> {
+    const quack = await this.prisma.quack.findUnique({
+      where: { id: quackId },
+      select: { userId: true },
+    });
+    return quack?.userId ?? null;
+  }
+
+  /** Deletes the quack only if the user wrote it; its poll options and votes go with it (cascade). */
+  async deleteQuack(quackId: string, userId: string): Promise<void> {
+    await this.prisma.quack.deleteMany({ where: { id: quackId, userId } });
   }
 
   /** The poll of a quack as one viewer sees it; null when the quack doesn't exist or has no poll. */

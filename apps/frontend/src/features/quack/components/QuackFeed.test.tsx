@@ -30,7 +30,7 @@ const respondLikeTheApi = () => {
   }) as unknown as typeof api.get)
 }
 
-type SearchOptions = { searchParams: { search?: string } }
+type SearchOptions = { searchParams: { search?: string; mine?: boolean } }
 
 const searchRequests = () =>
   vi
@@ -38,11 +38,11 @@ const searchRequests = () =>
     .mock.calls.map(([, options]) => (options as SearchOptions).searchParams.search)
     .filter((search) => search !== undefined)
 
-const renderFeed = () =>
+const renderFeed = (onWriteFirst?: () => void) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <button type="button">Somewhere else</button>
-      <QuackFeed />
+      <QuackFeed onWriteFirst={onWriteFirst} />
     </QueryClientProvider>,
   )
 
@@ -162,5 +162,46 @@ describe("QuackFeed search", () => {
     await userEvent.click(screen.getByRole("button", { name: "Toggle search" }))
 
     expect(screen.getByRole("textbox", { name: "Search quacks" })).toHaveValue("")
+  })
+})
+
+describe("QuackFeed tabs", () => {
+  beforeEach(() => {
+    vi.mocked(api.get).mockReset()
+    respondLikeTheApi()
+  })
+
+  const mineRequests = () =>
+    vi.mocked(api.get).mock.calls.map(([, options]) => (options as SearchOptions).searchParams.mine)
+
+  it("starts on All and asks for Mine only when that tab is picked, without any user id", async () => {
+    renderFeed()
+    await screen.findByText("Crumbs at the pond")
+    expect(screen.getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true")
+    expect(mineRequests()).toEqual([undefined])
+
+    await userEvent.click(screen.getByRole("tab", { name: "Mine" }))
+
+    await waitFor(() => expect(mineRequests()).toContain(true))
+    const mineCall = vi
+      .mocked(api.get)
+      .mock.calls.find(([, options]) => (options as SearchOptions).searchParams.mine)
+    expect(Object.keys((mineCall?.[1] as SearchOptions).searchParams)).not.toContain("userId")
+  })
+
+  it("says so when Mine is empty and offers to write the first quack", async () => {
+    vi.mocked(api.get).mockImplementation(((_url: string, options: SearchOptions) => ({
+      json: () =>
+        Promise.resolve({ items: options.searchParams.mine ? [] : FEED, nextOffset: null }),
+    })) as unknown as typeof api.get)
+    const onWriteFirst = vi.fn()
+    renderFeed(onWriteFirst)
+    await screen.findByText("Crumbs at the pond")
+
+    await userEvent.click(screen.getByRole("tab", { name: "Mine" }))
+
+    expect(await screen.findByText("You haven't posted any quacks yet.")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
+    expect(onWriteFirst).toHaveBeenCalledOnce()
   })
 })
