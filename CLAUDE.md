@@ -14,6 +14,7 @@ The worked example is the quack feed: `Quack` model → seed → repository → 
 - `pnpm dev` — everything: env files, Postgres (Docker), migrate, seed, both dev servers
 - `pnpm check-all` — lint + type-check + tests + build (same as CI)
 - `pnpm backend test` / `pnpm frontend test:ci` — unit tests
+- `pnpm frontend test:e2e` — Playwright against the running app (needs the seed accounts)
 - `pnpm backend prisma:migrations:run` — create/apply migrations after schema changes
 
 ## Conventions
@@ -37,6 +38,12 @@ A rule like "one vote per person" or "one like per user" is a primary key or a u
 ### Ownership is enforced on the server
 
 Who may change or delete a row is decided from the session, inside the write itself (`WHERE id AND userId`), never only by hiding the button. A request for someone else's row gets 403, a missing one 404.
+
+### Roles come from the session, and every permission rule has a test that can fail
+
+A role widens a rule, it doesn't replace it: "the owner, or an admin/moderator" is one condition in the service, with the role read from `@User()`, never from the URL or body. A whole route for one role is `@Roles(...)` + `RolesGuard` after `AuthenticatedUserGuard` (401 before 403). The UI hides controls by the same role, but only for convenience.
+
+Each permission rule gets an E2E test with one page per account (`browser.newPage()`) that checks both sides — the allowed role succeeds, a regular user gets 403 — and was seen to fail with the check switched off.
 
 ### The app is already running
 
