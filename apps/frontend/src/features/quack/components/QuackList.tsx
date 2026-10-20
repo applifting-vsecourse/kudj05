@@ -19,6 +19,8 @@ type QuackListProps = {
   emptyAction?: ReactNode
   // Quacks by this user get a Delete action.
   currentUserId?: string
+  // Admins and moderators get Delete on every quack.
+  canDeleteAny?: boolean
   error?: Error
   onReload?: () => void
   onLoadMore?: () => void
@@ -32,6 +34,7 @@ export function QuackList({
   emptyMessage = "No quacks yet. Post the first one.",
   emptyAction,
   currentUserId,
+  canDeleteAny,
   error,
   onReload,
   onLoadMore,
@@ -84,13 +87,17 @@ export function QuackList({
         </div>
       ) : null}
 
-      {quacks.map((quack) => (
-        <QuackItem
-          key={quack.id}
-          quack={quack}
-          canDelete={currentUserId !== undefined && quack.userId === currentUserId}
-        />
-      ))}
+      {quacks.map((quack) => {
+        const isMine = currentUserId !== undefined && quack.userId === currentUserId
+        return (
+          <QuackItem
+            key={quack.id}
+            quack={quack}
+            isMine={isMine}
+            canDelete={isMine || canDeleteAny}
+          />
+        )
+      })}
 
       {onLoadMore ? (
         <div className="flex min-h-10 items-center justify-center py-4">

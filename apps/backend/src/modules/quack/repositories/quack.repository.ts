@@ -133,6 +133,11 @@ export class QuackRepository {
     await this.prisma.quack.deleteMany({ where: { id: quackId, userId } });
   }
 
+  /** Deletes the quack whoever wrote it — for moderation only. Poll options and votes go with it (cascade). */
+  async deleteAnyQuack(quackId: string): Promise<void> {
+    await this.prisma.quack.deleteMany({ where: { id: quackId } });
+  }
+
   /** The poll of a quack as one viewer sees it; null when the quack doesn't exist or has no poll. */
   async getPoll(quackId: string, viewerId: string): Promise<Poll | null> {
     const options = await this.prisma.pollOption.findMany({

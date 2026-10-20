@@ -21,9 +21,11 @@ type QuackFeedProps = {
   onWriteFirst?: () => void
   // Quacks by this user get a Delete action.
   currentUserId?: string
+  // Admins and moderators get Delete on every quack.
+  canDeleteAny?: boolean
 }
 
-export function QuackFeed({ onWriteFirst, currentUserId }: QuackFeedProps) {
+export function QuackFeed({ onWriteFirst, currentUserId, canDeleteAny }: QuackFeedProps) {
   const [tab, setTab] = useState<FeedTab>("all")
   const isMine = tab === "mine"
   // null = search is closed; any string, even an empty one = search is open.
@@ -142,6 +144,7 @@ export function QuackFeed({ onWriteFirst, currentUserId }: QuackFeedProps) {
             emptyMessage={emptyMessage}
             emptyAction={emptyAction}
             currentUserId={currentUserId}
+            canDeleteAny={canDeleteAny}
             error={isAwaitingQuery ? undefined : (quacksQuery.error ?? undefined)}
             // Only the error state offers a retry — posting invalidates the list,
             // and refocusing the tab refetches it.

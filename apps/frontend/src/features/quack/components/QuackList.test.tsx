@@ -87,6 +87,40 @@ describe("QuackList", () => {
     expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(1)
   })
 
+  it("offers Delete on every quack to an admin or a moderator", () => {
+    renderList(
+      <QuackList
+        currentUserId="u9"
+        canDeleteAny
+        quacks={[
+          quack({ id: "q1", text: "spam" }),
+          quack({ id: "q2", text: "more spam", userId: "u2" }),
+        ]}
+      />,
+    )
+
+    expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2)
+  })
+
+  it("names the author when someone else's quack is about to go", async () => {
+    vi.mocked(api.delete).mockResolvedValue({} as never)
+    renderList(
+      <QuackList
+        currentUserId="u9"
+        canDeleteAny
+        quacks={[quack()]}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete" }))
+    expect(screen.getByText("Delete @CaffeinatedDuck's quack?")).toBeInTheDocument()
+
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }),
+    )
+    expect(api.delete).toHaveBeenCalledWith("quacks/q1")
+  })
+
   it("asks before deleting and deletes only after confirming", async () => {
     vi.mocked(api.delete).mockResolvedValue({} as never)
     renderList(

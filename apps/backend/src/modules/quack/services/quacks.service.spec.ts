@@ -100,7 +100,7 @@ describe('QuacksService', () => {
   });
 
   describe('deleting', () => {
-    const user = { id: 'u1' } as Identity;
+    const user = { id: 'u1', role: 'user' } as Identity;
 
     it('deletes a quack its author asks to delete', async () => {
       const repository = mock<QuackRepository>();
@@ -123,6 +123,33 @@ describe('QuacksService', () => {
         ForbiddenException,
       );
       expect(repository.deleteQuack).not.toHaveBeenCalled();
+      expect(repository.deleteAnyQuack).not.toHaveBeenCalled();
+    });
+
+    it.each(['admin', 'moderator'])(
+      "lets an %s delete someone else's quack",
+      async (role) => {
+        const repository = mock<QuackRepository>();
+        repository.getAuthorId.mockResolvedValue('u2');
+
+        const service = new QuacksService(repository);
+
+        await service.deleteQuack({ id: 'u9', role } as Identity, 'q1');
+
+        expect(repository.deleteAnyQuack).toHaveBeenCalledWith('q1');
+      },
+    );
+
+    it('reports a missing quack to an admin too', async () => {
+      const repository = mock<QuackRepository>();
+      repository.getAuthorId.mockResolvedValue(null);
+
+      const service = new QuacksService(repository);
+
+      await expect(
+        service.deleteQuack({ id: 'u9', role: 'admin' } as Identity, 'nope'),
+      ).rejects.toThrow(NotFoundException);
+      expect(repository.deleteAnyQuack).not.toHaveBeenCalled();
     });
 
     it('reports a quack that does not exist', async () => {

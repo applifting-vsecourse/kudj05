@@ -10,11 +10,12 @@ import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
 type QuackItemProps = {
   quack: Quack
-  // Only the author gets Delete; the server refuses everyone else anyway.
+  isMine?: boolean
+  // The author, an admin or a moderator gets Delete; the server refuses everyone else anyway.
   canDelete?: boolean
 }
 
-export function QuackItem({ quack, canDelete }: QuackItemProps) {
+export function QuackItem({ quack, isMine, canDelete }: QuackItemProps) {
   const { name, username } = quack.user
   const mood = quack.mood ? MOOD_OPTIONS[quack.mood] : null
 
@@ -52,7 +53,11 @@ export function QuackItem({ quack, canDelete }: QuackItemProps) {
           ) : null}
           {canDelete ? (
             <span className="ml-auto">
-              <DeleteQuackButton quackId={quack.id} />
+              <DeleteQuackButton
+                quackId={quack.id}
+                // Someone else's quack is named in the dialog, so a moderator sees whose it is.
+                authorUsername={isMine ? undefined : username}
+              />
             </span>
           ) : null}
         </div>
