@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { Loader2, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -14,6 +15,10 @@ type QuackListProps = {
   // The quacks on screen belong to the previous request while the next one loads.
   isStale?: boolean
   emptyMessage?: string
+  // Shown under the empty message when there is a next step to offer.
+  emptyAction?: ReactNode
+  // Quacks by this user get a Delete action.
+  currentUserId?: string
   error?: Error
   onReload?: () => void
   onLoadMore?: () => void
@@ -25,6 +30,8 @@ export function QuackList({
   isFetchingNextPage,
   isStale,
   emptyMessage = "No quacks yet. Post the first one.",
+  emptyAction,
+  currentUserId,
   error,
   onReload,
   onLoadMore,
@@ -66,18 +73,22 @@ export function QuackList({
       ) : null}
 
       {!isLoading && !error && quacks.length === 0 ? (
-        <p
-          role="status"
-          className="py-8 text-center text-sm text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0"
-        >
-          {emptyMessage}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-8 motion-safe:animate-in motion-safe:fade-in-0">
+          <p
+            role="status"
+            className="text-center text-sm text-muted-foreground"
+          >
+            {emptyMessage}
+          </p>
+          {emptyAction}
+        </div>
       ) : null}
 
       {quacks.map((quack) => (
         <QuackItem
           key={quack.id}
           quack={quack}
+          canDelete={currentUserId !== undefined && quack.userId === currentUserId}
         />
       ))}
 
