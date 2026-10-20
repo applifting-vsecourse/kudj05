@@ -80,6 +80,8 @@ export const seedDatabase = async (
     password: 'password5',
     name: 'Pond Admin',
     username: 'PondAdmin',
+    // Deletes anyone's quack, but doesn't see the admin's stats.
+    role: 'moderator',
   });
 
   console.log('Creating example quacks');

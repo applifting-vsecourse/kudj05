@@ -10,6 +10,8 @@ export const authClient = createAuthClient({
     // The extra user columns the backend adds in its BetterAuth config.
     inferAdditionalFields({
       user: {
+        // "user", "moderator" or "admin". Only hides controls; the API checks it again.
+        role: { type: "string", required: false, input: false },
         bio: { type: "string", required: false },
         defaultMood: { type: "string", required: false },
       },
