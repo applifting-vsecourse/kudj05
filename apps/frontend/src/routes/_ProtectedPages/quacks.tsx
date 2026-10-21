@@ -32,6 +32,7 @@ function QuacksPage() {
 
         <QuackFeed
           currentUserId={user?.id}
+          canDeleteAny={user?.role === "admin" || user?.role === "moderator"}
           onWriteFirst={focusForm}
         />
       </section>

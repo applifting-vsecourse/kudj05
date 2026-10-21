@@ -1,59 +1,56 @@
-# Mazání příspěvků a filtr „Moje“
+# Moderace: admin smaže cizí příspěvek
 
 ## User story
 
-Jako autor příspěvků
-chci smazat své příspěvky a vidět ve feedu jen ty svoje,
-abych mohl uklidit, co jsem napsal.
+Jako admin Quackeru
+chci smazat jakýkoli příspěvek, i cizí,
+abych mohl odstranit nevhodné quacky, když je jejich autor smazat nechce.
+
+Admin je účet s rolí `admin` (ze seedu `admin@example.com` / `adminpassword`). Nově přibývá role `moderator`, která smí mazat stejně jako admin, ale nic víc.
 
 ## Acceptance criteria
 
-### Mazání
+### Mazání adminem a moderátorem
 
-- [ ] U každého mého příspěvku je tlačítko „Delete“ (ikona koše s textem). U cizích příspěvků není.
-- [ ] Po kliknutí na „Delete“ se aplikace zeptá: dialog „Delete this quack?“ s tlačítky „Cancel“ a „Delete“. Dokud nepotvrdím, nic se nesmaže.
-- [ ] „Cancel“ (i Escape) dialog zavře a příspěvek zůstane.
-- [ ] Po potvrzení příspěvek zmizí z feedu, z „Mine“ i z výsledků vyhledávání, a to bez reloadu stránky. U příspěvku s anketou zmizí i anketa a její hlasy.
-- [ ] Smazaný příspěvek je pryč i po reloadu a vidí ho tak i ostatní účty.
-- [ ] Když se smazání nepodaří (např. bez připojení), příspěvek zůstane a objeví se hláška „Couldn't delete the quack. Try again.“
-- [ ] Cizí příspěvek nesmaže nikdo, ani přímým voláním API: `DELETE /api/quacks/:id` na cizí příspěvek vrátí 403 a nic se nesmaže.
-- [ ] Nepřihlášený dostane na `DELETE /api/quacks/:id` 401; neexistující příspěvek vrátí 404.
+- [ ] Přihlášený admin vidí tlačítko „Delete“ u každého příspěvku ve feedu, v „Mine“ i ve výsledcích vyhledávání.
+- [ ] Moderátor (ze seedu `pondadmin@example.com` / `password5`) vidí „Delete“ u každého příspěvku stejně jako admin.
+- [ ] U cizího příspěvku se dialog ptá jménem autora: „Delete @CaffeinatedDuck's quack?“ s tlačítky „Cancel“ a „Delete“. U vlastního příspěvku zůstává „Delete this quack?“.
+- [ ] Po potvrzení cizí příspěvek zmizí bez reloadu a je pryč i po reloadu pro všechny účty, včetně ankety a hlasů.
+- [ ] Admin i moderátor smažou cizí příspěvek i přímo přes API (Swagger): `DELETE /api/quacks/:id` vrátí 204.
 
-### Filtr
+### Ostatní se nic nemění
 
-- [ ] Nad feedem jsou dvě záložky: „All“ (výchozí) a „Mine“. Jdou ovládat klávesnicí (šipky, Tab) a mají viditelný focus.
-- [ ] „Mine“ ukazuje jen moje příspěvky; „All“ všechny jako dosud.
-- [ ] Filtr se řídí přihlášením, ne parametrem: v URL ani v těle požadavku není žádné `userId`, jen `mine=true`.
-- [ ] Vyhledávání funguje v obou záložkách: v „Mine“ hledá jen mezi mými příspěvky.
-- [ ] Když nemám žádný příspěvek, „Mine“ napíše „You haven't posted any quacks yet.“ a nabídne tlačítko „Write your first quack“, které přesune kurzor do formuláře „New quack“.
-- [ ] Nepřihlášený se k feedu nedostane, stejně jako dnes.
+- [ ] Běžný uživatel (např. `deepduckthoughts@example.com`) vidí „Delete“ jen u svých příspěvků.
+- [ ] Běžný uživatel dostane na `DELETE /api/quacks/:id` cizího příspěvku 403 a nic se nesmaže, i přes Swagger.
+- [ ] Nepřihlášený dostane 401, neexistující příspěvek vrátí 404 (i adminovi).
+- [ ] Autor své příspěvky maže dál jako dosud.
+
+### Statistiky (jen admin)
+
+- [ ] V uživatelském menu admina je odkaz „Stats“ (ikona s textem), který vede na stránku `/stats`. Běžný uživatel ani moderátor odkaz nevidí.
+- [ ] Stránka „Stats“ ukazuje čtyři čísla: „Users“, „Quacks“, „Polls“, „Votes“. Když v databázi nic není, ukazuje nuly.
+- [ ] `GET /api/stats` vrátí adminovi 200, běžnému uživateli a moderátorovi 403, nepřihlášenému 401.
+- [ ] Kdo není admin a otevře `/stats` přímo, uvidí „You don't have access to this page.“ místo čísel.
 
 ## Mimo scope
 
-- Úprava příspěvku, hromadné mazání, vrácení smazaného (koš, „Undo“).
-- Mazání cizích příspěvků moderátorem nebo adminem.
-- Filtr podle jiného autora, počet příspěvků na záložce.
-- Zapamatování zvolené záložky po reloadu.
+- Upozornění autora, důvod smazání, záznam o tom, kdo co smazal (audit log), obnovení smazaného.
+- Úprava cizích příspěvků, blokování nebo mazání uživatelů.
+- Přidělování rolí v aplikaci: role se nastaví v seedu nebo v Prisma Studiu.
+- Další statistiky (nejaktivnější autoři, grafy, časové řady).
 
 ## Rozhodnutí UX a implementace
 
-- Mazání je nevratné, proto se ptáme `AlertDialog` z UI kitu (ne `Dialog`): vyžaduje rozhodnutí, nezavře se kliknutím mimo. Tlačítko „Delete“ v dialogu je `destructive`.
-- Pravidlo „smazat smí jen autor“ platí na serveru: autor se bere ze session a je součástí samotného `DELETE ... WHERE id AND userId`, takže se nedá předběhnout ani souběhem. Tlačítko v UI je jen pohodlí.
-- Smazání příspěvku smaže v databázi i jeho odpovědi ankety a hlasy (`ON DELETE CASCADE`), nic se nemigruje ani nepočítá ručně.
-- Filtr „Mine“ je `GET /api/quacks?mine=true`; kdo jsem, určuje session.
+- Kdo smí mazat, rozhoduje server ze session: `isOwner || isAdmin || isModerator`, jinak `ForbiddenException`. Role se bere z `@User()`, nikdy z URL ani z těla požadavku. Tlačítko v UI je jen pohodlí.
+- Mazání autorem zůstává `DELETE ... WHERE id AND userId`. Admin a moderátor mažou podle `id`, smazání neexistujícího řádku je 404.
+- Role `moderator` je nová hodnota enumu `UserRole` v `schema.prisma` s migrací.
+- Statistiky jsou `GET /api/stats` chráněné `@Roles('admin')` a `RolesGuard`. Čísla se počítají z řádků (`count`), nic se neukládá.
+- Odkaz „Stats“ je skrytý podle `user.role === "admin"`; skutečnou ochranou je 403 z API.
 - Texty v rozhraní jsou anglicky, ikony z lucide s textovým popiskem, žádné emoji.
+- Testy: unit test služby (cizí uživatel dostane `ForbiddenException`, admin a moderátor projdou) a E2E test (admin smaže cizí příspěvek, běžný uživatel dostane 403).
 
 ## Mimořádné stavy
 
-- Žádný můj příspěvek: „Mine“ má vlastní prázdný stav s nabídkou napsat první.
-- Smazal jsem svůj poslední příspěvek v „Mine“: zobrazí se tentýž prázdný stav.
-- Příspěvek mezitím smazal jiný z mých oken: smazání v druhém okně vrátí 404, hláška o neúspěchu a feed se po refetchi srovná.
-- Načítání a chyba načtení: stávající stavy feedu, platí i pro „Mine“.
-
-## Definition of done
-
-- Dva účty v produkci (normální a anonymní okno): autor vidí „Delete“, aplikace se zeptá, příspěvek zmizí; druhý účet „Delete“ u cizího příspěvku nevidí.
-- Přes Swagger: `DELETE` cizího příspěvku vrátí 403, po odhlášení 401.
-- „Mine“ ukazuje jen moje a v požadavku není `userId`.
-- Každou změnu umím vysvětlit.
-- Nové pravidlo v `CLAUDE.md`, nebo důvod, proč se není co naučit.
+- Admin maže příspěvek, který mezitím smazal autor: 404, hláška „Couldn't delete the quack. Try again.“ a feed se po refetchi srovná.
+- Prázdná databáze: stránka „Stats“ ukazuje nuly.
+- Statistiky se nepodaří načíst: „Couldn't load stats.“

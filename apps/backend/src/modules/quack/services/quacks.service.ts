@@ -4,6 +4,7 @@ import {
   QuackRepository,
 } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
+import { hasRole, MODERATION_ROLES } from '@/shared/auth/domain/roles';
 import {
   BadRequestException,
   ForbiddenException,
@@ -41,15 +42,23 @@ export class QuacksService {
     });
   }
 
-  /** Deletes a quack, its poll and the poll's votes. Only its author may. */
+  /** Deletes a quack, its poll and the poll's votes. Its author may, and so may an admin or a moderator. */
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
     const authorId = await this.quackRepository.getAuthorId(quackId);
     if (!authorId) throw new NotFoundException('Quack not found');
-    if (authorId !== user.id) {
+
+    const isOwner = authorId === user.id;
+    const isModerator = hasRole(user, MODERATION_ROLES);
+    if (!isOwner && !isModerator) {
       throw new ForbiddenException('You can only delete your own quacks');
     }
-    // The author is part of the delete itself, so the check above can't be raced past.
-    await this.quackRepository.deleteQuack(quackId, user.id);
+
+    if (isModerator) {
+      await this.quackRepository.deleteAnyQuack(quackId);
+    } else {
+      // The author is part of the delete itself, so the check above can't be raced past.
+      await this.quackRepository.deleteQuack(quackId, user.id);
+    }
   }
 
   /** Casts the user's vote in a poll, or moves it when they have already voted. */
