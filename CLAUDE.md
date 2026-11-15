@@ -19,6 +19,8 @@ The worked example is the quack feed: `Quack` model → seed → repository → 
 
 ## Conventions
 
+Before changing the data model or the structure of the app, check the index of architecture decisions in [`docs/adr/README.md`](docs/adr/README.md).
+
 Deliberately sparse — this file grows as the team learns what it expects from generated code. Add rules here when you find yourself repeating the same review feedback.
 
 ### UI controls come from the kit

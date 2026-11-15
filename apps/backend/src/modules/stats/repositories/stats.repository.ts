@@ -9,7 +9,8 @@ export class StatsRepository {
   async getStats(): Promise<Stats> {
     const [users, quacks, polls, votes] = await this.prisma.$transaction([
       this.prisma.user.count(),
-      this.prisma.quack.count(),
+      // Deleted quacks stay as tombstones for their replies (docs/adr/0001); they don't count.
+      this.prisma.quack.count({ where: { deletedAt: null } }),
       // A quack is a poll when it has options; there is no poll table of its own.
       this.prisma.quack.count({ where: { pollOptions: { some: {} } } }),
       this.prisma.pollVote.count(),

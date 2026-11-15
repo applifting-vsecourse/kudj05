@@ -51,14 +51,18 @@ export class QuackResponseDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Empty for a deleted quack' })
   text!: string;
 
   @ApiProperty({ enum: MOODS, nullable: true })
   mood!: Mood | null;
 
-  @ApiProperty()
-  userId!: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'null for a deleted quack',
+  })
+  userId!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: Date;
@@ -70,10 +74,47 @@ export class QuackResponseDto {
   })
   poll!: PollResponseDto | null;
 
-  @ApiProperty({ type: QuackUserDto })
-  user!: QuackUserDto;
+  @ApiProperty({
+    type: QuackUserDto,
+    nullable: true,
+    description:
+      'null for a deleted quack: who wrote it is gone with the content',
+  })
+  user!: QuackUserDto | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The quack this one replies to; null for a quack in the feed',
+  })
+  parentId!: string | null;
+
+  @ApiProperty({
+    description:
+      'A deleted quack stays only to hold its replies; its text, author, mood and poll are gone',
+  })
+  isDeleted!: boolean;
+
+  @ApiProperty({ description: 'Number of replies that are not deleted' })
+  replyCount!: number;
 
   static fromDomain(quack: Quack): QuackResponseDto {
+    if (quack.deletedAt) {
+      // Built from scratch rather than by blanking fields, so nothing the author
+      // wrote can slip through when a field is added later.
+      return {
+        id: quack.id,
+        text: '',
+        mood: null,
+        userId: null,
+        createdAt: quack.createdAt,
+        poll: null,
+        user: null,
+        parentId: quack.parentId,
+        isDeleted: true,
+        replyCount: quack.replyCount,
+      };
+    }
     if (!quack.user) {
       throw new Error(
         `QuackResponseDto.fromDomain expected quack.user to be loaded for quack ${quack.id}`,
@@ -91,6 +132,9 @@ export class QuackResponseDto {
         name: quack.user.name,
         username: quack.user.username,
       },
+      parentId: quack.parentId,
+      isDeleted: false,
+      replyCount: quack.replyCount,
     };
   }
 }

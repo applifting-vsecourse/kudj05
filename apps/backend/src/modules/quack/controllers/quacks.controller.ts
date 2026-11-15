@@ -23,7 +23,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CreateQuackDto } from './dto/create-quack.dto';
+import { CreateQuackDto, CreateReplyDto } from './dto/create-quack.dto';
 import { ListQuacksDto } from './dto/list-quacks.dto';
 import { QuackPageResponseDto } from './dto/quack.page.response.dto';
 import { PollResponseDto, QuackResponseDto } from './dto/quack.response.dto';
@@ -80,12 +80,51 @@ export class QuacksController {
     return QuackResponseDto.fromDomain(quack);
   }
 
+  @Get(':quackId/replies')
+  @ApiOperation({
+    summary: 'List the replies to a quack, oldest first',
+    description:
+      'Deleted replies are left out. A deleted quack still lists the replies under it.',
+  })
+  @ApiResponse({ status: 200, type: [QuackResponseDto] })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack not found' })
+  async listReplies(
+    @User() user: Identity,
+    @Param('quackId') quackId: string,
+  ): Promise<QuackResponseDto[]> {
+    const replies = await this.quacksService.getReplies(user, quackId);
+    return replies.map(QuackResponseDto.fromDomain);
+  }
+
+  @Post(':quackId/replies')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Reply to a quack' })
+  @ApiResponse({ status: 201, type: QuackResponseDto })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid text, or the quack is itself a reply',
+  })
+  @ApiResponse({ status: 401, description: 'Not signed in' })
+  @ApiResponse({ status: 404, description: 'Quack not found or deleted' })
+  async reply(
+    @User() user: Identity,
+    @Param('quackId') quackId: string,
+    @Body() body: CreateReplyDto,
+  ): Promise<QuackResponseDto> {
+    const reply = await this.quacksService.createReply(user, quackId, {
+      text: body.text,
+    });
+    return QuackResponseDto.fromDomain(reply);
+  }
+
   @Delete(':quackId')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Delete a quack',
+    summary: 'Delete a quack or a reply',
     description:
-      'Authors delete their own quacks; admins and moderators may delete any quack.',
+      'Authors delete their own quacks; admins and moderators may delete any quack. ' +
+      'The text, mood, poll and votes are wiped; replies under it stay (docs/adr/0001).',
   })
   @ApiResponse({ status: 204, description: 'Deleted' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
@@ -93,7 +132,10 @@ export class QuacksController {
     status: 403,
     description: 'Quack belongs to someone else and you are not a moderator',
   })
-  @ApiResponse({ status: 404, description: 'Quack not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Quack not found or already deleted',
+  })
   async remove(
     @User() user: Identity,
     @Param('quackId') quackId: string,

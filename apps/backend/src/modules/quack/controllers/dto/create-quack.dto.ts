@@ -4,6 +4,7 @@ import {
   POLL_MAX_OPTIONS,
   POLL_MIN_OPTIONS,
   POLL_OPTION_MAX_LENGTH,
+  QUACK_MAX_LENGTH,
 } from '@/modules/quack/domain/quack';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
@@ -53,11 +54,11 @@ export class CreateQuackDto {
   @ApiProperty({
     description: 'Body of the quack',
     example: 'Hello, world!',
-    maxLength: 280,
+    maxLength: QUACK_MAX_LENGTH,
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(280)
+  @MaxLength(QUACK_MAX_LENGTH)
   text!: string;
 
   @ApiProperty({
@@ -78,4 +79,17 @@ export class CreateQuackDto {
   @ValidateNested()
   @Type(() => CreatePollDto)
   poll?: CreatePollDto;
+}
+
+// A reply is a quack without a mood or a poll; the parent comes from the URL.
+export class CreateReplyDto {
+  @ApiProperty({
+    description: 'Body of the reply',
+    example: 'Count me in!',
+    maxLength: QUACK_MAX_LENGTH,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(QUACK_MAX_LENGTH)
+  text!: string;
 }

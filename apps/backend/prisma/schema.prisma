@@ -34,18 +34,30 @@ enum Mood {
 }
 
 model Quack {
-  id        String   @id @default(cuid())
-  text      String   @db.Text
+  id        String    @id @default(cuid())
+  // Empty once the quack is deleted: the row stays only so its replies keep their parent.
+  text      String    @db.Text
   mood      Mood?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  // Set when the quack is deleted; text, mood and poll are wiped in the same write.
+  // A CHECK constraint in the migration keeps a deleted quack from having text. See docs/adr/0001.
+  deletedAt DateTime?
+
+  // A reply points at the quack it answers; null = a quack in the feed.
+  // Restrict: a quack with replies is never removed for real, see docs/adr/0001.
+  parent   Quack?  @relation("Replies", fields: [parentId], references: [id], onDelete: Restrict)
+  parentId String?
+  replies  Quack[] @relation("Replies")
 
   // A quack is a poll when it has options: no rows here means a plain quack.
   pollOptions PollOption[]
 
   @@index([userId])
+  // Loads a thread in order and counts its replies.
+  @@index([parentId, createdAt])
   @@map("quack")
 }
 

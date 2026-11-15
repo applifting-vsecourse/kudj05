@@ -9,18 +9,21 @@ type CreateQuackParams = {
   createdAt?: Date;
   // Makes the quack a poll; the array order is the order the options show in.
   pollOptions?: string[];
+  // Makes the quack a reply to this one.
+  parentId?: string;
 };
 
 export async function createQuack(
   prisma: PrismaService,
   params: CreateQuackParams,
 ): Promise<Quack> {
-  const { text, userId, createdAt, pollOptions } = params;
+  const { text, userId, createdAt, pollOptions, parentId } = params;
 
   return await prisma.quack.create({
     data: {
       text,
       createdAt,
+      parent: parentId ? { connect: { id: parentId } } : undefined,
       pollOptions: pollOptions
         ? {
             create: pollOptions.map((optionText, position) => ({

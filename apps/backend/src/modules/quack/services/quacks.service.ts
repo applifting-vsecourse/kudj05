@@ -1,4 +1,4 @@
-import { Mood, Poll, Quack } from '@/modules/quack/domain/quack';
+import { Mood, Poll, Quack, QuackRef } from '@/modules/quack/domain/quack';
 import {
   QuackPage,
   QuackRepository,
@@ -42,10 +42,39 @@ export class QuacksService {
     });
   }
 
-  /** Deletes a quack, its poll and the poll's votes. Its author may, and so may an admin or a moderator. */
+  /** Live replies to a quack, oldest first. A deleted quack still shows the replies under it. */
+  async getReplies(user: Identity, quackId: string): Promise<Quack[]> {
+    const parent = await this.quackRepository.getQuackRef(quackId);
+    if (!parent) throw new NotFoundException('Quack not found');
+    return this.quackRepository.getReplies(quackId, user.id);
+  }
+
+  /** Replies to a quack in the feed. Replies are one level deep: a reply can't be replied to. */
+  async createReply(
+    user: Identity,
+    quackId: string,
+    replyData: { text: string },
+  ): Promise<Quack> {
+    const parent = await this.getLiveQuackOrThrow(quackId);
+    if (parent.parentId !== null) {
+      throw new BadRequestException(
+        'You can only reply to a quack, not to a reply',
+      );
+    }
+    return this.quackRepository.createQuack({
+      text: replyData.text,
+      parentId: quackId,
+      // the author is taken from the session, never from the request body
+      userId: user.id,
+    });
+  }
+
+  /**
+   * Deletes a quack: its text, mood, poll and votes are wiped, the row stays so
+   * replies keep their parent (docs/adr/0001). Its author may, and so may an admin or a moderator.
+   */
   async deleteQuack(user: Identity, quackId: string): Promise<void> {
-    const authorId = await this.quackRepository.getAuthorId(quackId);
-    if (!authorId) throw new NotFoundException('Quack not found');
+    const { userId: authorId } = await this.getLiveQuackOrThrow(quackId);
 
     const isOwner = authorId === user.id;
     const isModerator = hasRole(user, MODERATION_ROLES);
@@ -81,6 +110,14 @@ export class QuacksService {
     await this.getPollOrThrow(user, quackId);
     await this.quackRepository.deleteVote(quackId, user.id);
     return this.getPollOrThrow(user, quackId);
+  }
+
+  /** A deleted quack counts as gone: deleting it again or replying to it is 404. */
+  private async getLiveQuackOrThrow(quackId: string): Promise<QuackRef> {
+    const quack = await this.quackRepository.getQuackRef(quackId);
+    if (!quack || quack.deletedAt)
+      throw new NotFoundException('Quack not found');
+    return quack;
   }
 
   private async getPollOrThrow(user: Identity, quackId: string): Promise<Poll> {

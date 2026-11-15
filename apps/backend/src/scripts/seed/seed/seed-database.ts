@@ -166,12 +166,48 @@ Please stop tagging me.`,
 
   const now = Date.now();
 
+  const seededQuacks: { text: string; id: string }[] = [];
   for (const { author, minutesAgo, text } of exampleQuacks) {
-    await createQuack(prisma, {
+    const quack = await createQuack(prisma, {
       text,
       userId: author.id,
       createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
     });
+    seededQuacks.push({ text, id: quack.id });
+  }
+
+  console.log('Creating example replies');
+
+  // A thread under the crumb quack, so the feed shows replies from the start.
+  const crumbQuack = seededQuacks.find(({ text }) =>
+    text.startsWith('me: throws one crumb'),
+  );
+  if (crumbQuack) {
+    const replies: { author: User; minutesAgo: number; text: string }[] = [
+      {
+        author: breadCritic,
+        minutesAgo: 80,
+        text: 'One crumb. Unseasoned. Thrown without conviction. 3/10, but the turnout was impressive.',
+      },
+      {
+        author: pondAdmin,
+        minutesAgo: 60,
+        text: 'This is how the bread situation started. I am begging you.',
+      },
+      {
+        author: deepDuckThoughts,
+        minutesAgo: 45,
+        text: 'Is it the crumb that gathers the ducks, or the ducks that give the crumb meaning?',
+      },
+    ];
+    for (const { author, minutesAgo, text } of replies) {
+      await createQuack(prisma, {
+        text,
+        userId: author.id,
+        parentId: crumbQuack.id,
+        createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
+      });
+    }
   }
 
   console.log('Creating example poll');
