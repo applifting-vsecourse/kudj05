@@ -9,6 +9,9 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   createdAt: new Date('2026-01-01T12:00:00Z'),
   updatedAt: new Date('2026-01-01T12:00:00Z'),
   poll: null,
+  parentId: null,
+  deletedAt: null,
+  replyCount: 0,
   user: { id: 'u1', name: 'Caffeinated Duck', username: 'caffeinatedduck' },
   ...overrides,
 });
@@ -35,6 +38,40 @@ describe('QuackResponseDto', () => {
         { id: 'o2', text: 'Sushi', voteCount: 0 },
       ],
       myOptionId: 'o2',
+    });
+  });
+
+  it('sends nothing the author wrote for a deleted quack, not even who they are', () => {
+    const quack = aQuack({
+      // what a tombstone row looks like: the text is already wiped in the database
+      text: '',
+      deletedAt: new Date('2026-01-02T12:00:00Z'),
+      mood: null,
+      replyCount: 2,
+    });
+
+    expect(QuackResponseDto.fromDomain(quack)).toEqual({
+      id: 'q1',
+      text: '',
+      mood: null,
+      userId: null,
+      createdAt: quack.createdAt,
+      poll: null,
+      user: null,
+      parentId: null,
+      isDeleted: true,
+      replyCount: 2,
+    });
+  });
+
+  it('sends the reply count and parent of a live quack', () => {
+    const dto = QuackResponseDto.fromDomain(
+      aQuack({ parentId: 'q0', replyCount: 0 }),
+    );
+    expect(dto).toMatchObject({
+      parentId: 'q0',
+      isDeleted: false,
+      replyCount: 0,
     });
   });
 });
