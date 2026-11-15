@@ -15,15 +15,19 @@ import { Button } from "@/components/ui/button"
 
 import { useDeleteQuack } from "@/features/quack/hooks/useDeleteQuack"
 
-// Deleting is asked about first: it takes the quack's poll and votes with it, and can't be undone.
+// Deleting is asked about first: it wipes the quack's text, poll and votes, and can't be undone.
+// Replies under it stay (docs/adr/0001).
 export function DeleteQuackButton({
   quackId,
   authorUsername,
+  isReply = false,
 }: {
   quackId: string
   // Set when deleting someone else's quack.
   authorUsername?: string
+  isReply?: boolean
 }) {
+  const noun = isReply ? "reply" : "quack"
   const deleteQuack = useDeleteQuack()
 
   return (
@@ -41,11 +45,12 @@ export function DeleteQuackButton({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {authorUsername ? `Delete @${authorUsername}'s quack?` : "Delete this quack?"}
+            {authorUsername ? `Delete @${authorUsername}'s ${noun}?` : `Delete this ${noun}?`}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            It disappears from the feed for everyone, along with its poll and votes. This can&apos;t
-            be undone.
+            {isReply
+              ? "It disappears from the thread for everyone. This can't be undone."
+              : "Its text disappears for everyone, along with its poll and votes. Replies to it stay. This can't be undone."}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

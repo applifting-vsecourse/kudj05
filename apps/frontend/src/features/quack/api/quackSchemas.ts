@@ -22,16 +22,36 @@ export const pollSchema = z.object({
   myOptionId: z.string().nullable(),
 })
 
-export const quackSchema = z.object({
+const quackFields = {
   id: z.string(),
-  text: z.string(),
   mood: moodSchema.nullable(),
-  userId: z.string(),
   createdAt: z.coerce.date(),
   // null = a plain quack without a poll
   poll: pollSchema.nullable(),
-  user: quackUserSchema,
-})
+  // The quack this one replies to; null for a quack in the feed.
+  parentId: z.string().nullable(),
+  // Replies that aren't deleted.
+  replyCount: z.number().int().nonnegative(),
+}
+
+export const quackSchema = z.discriminatedUnion("isDeleted", [
+  z.object({
+    ...quackFields,
+    isDeleted: z.literal(false),
+    text: z.string(),
+    userId: z.string(),
+    user: quackUserSchema,
+  }),
+  // A deleted quack stays only to hold its replies: the server sends nothing its
+  // author wrote, not even who they are (docs/adr/0001).
+  z.object({
+    ...quackFields,
+    isDeleted: z.literal(true),
+    text: z.literal(""),
+    userId: z.null(),
+    user: z.null(),
+  }),
+])
 
 export const quacksSchema = z.array(quackSchema)
 

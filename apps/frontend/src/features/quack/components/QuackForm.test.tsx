@@ -27,6 +27,9 @@ describe("QuackForm mood", () => {
       mood: null,
       poll: null,
       userId: "u1",
+      isDeleted: false,
+      parentId: null,
+      replyCount: 0,
       createdAt: new Date("2026-01-01T12:00:00Z"),
       user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
     })
@@ -90,6 +93,9 @@ describe("QuackForm poll", () => {
       mood: null,
       poll: null,
       userId: "u1",
+      isDeleted: false,
+      parentId: null,
+      replyCount: 0,
       createdAt: new Date("2026-01-01T12:00:00Z"),
       user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
     })

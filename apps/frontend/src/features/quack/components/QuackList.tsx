@@ -87,17 +87,14 @@ export function QuackList({
         </div>
       ) : null}
 
-      {quacks.map((quack) => {
-        const isMine = currentUserId !== undefined && quack.userId === currentUserId
-        return (
-          <QuackItem
-            key={quack.id}
-            quack={quack}
-            isMine={isMine}
-            canDelete={isMine || canDeleteAny}
-          />
-        )
-      })}
+      {quacks.map((quack) => (
+        <QuackItem
+          key={quack.id}
+          quack={quack}
+          currentUserId={currentUserId}
+          canDeleteAny={canDeleteAny}
+        />
+      ))}
 
       {onLoadMore ? (
         <div className="flex min-h-10 items-center justify-center py-4">
